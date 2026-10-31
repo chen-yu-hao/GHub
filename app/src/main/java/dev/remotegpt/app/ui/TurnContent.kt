@@ -137,7 +137,7 @@ import dev.remotegpt.client.*
                     if (expanded) tr(R.string.ui_collapse) else tr(R.string.ui_expand), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (steps.isNotEmpty()) OutputEventRail(steps)
-            (if (expanded) steps else failures).forEach { item ->
+            if (expanded) steps.forEach { item ->
                 key(item.identityKey) {
                     TimelineCard(item, preview, imagePreviews = imagePreviews, imageLoading = imageLoading, onLoadImage = onLoadImage)
                 }

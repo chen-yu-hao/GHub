@@ -8,7 +8,7 @@ GHub 是开源 Android 远程 Codex 工作台。通过 SSH 管理 Linux 上的�
 
 ## 下载
 
-从 [GitHub Releases](https://github.com/iawnix/GHub/releases/latest) 下载 `ghub.apk`，支持 Android 10 及更新版本。每个版本附带 SHA-256 校验和及对应源码。当前版本 `0.1.35`。正式包名为 `dev.remotegpt.app`，与开发预览版 `dev.remotegpt.preview` 可同时安装。
+从 [GitHub Releases](https://github.com/iawnix/GHub/releases/latest) 下载 `ghub.apk`，支持 Android 10 及更新版本。每个版本附带 SHA-256 校验和及对应源码。当前版本 `0.1.36`。正式包名为 `dev.remotegpt.app`，与开发预览版 `dev.remotegpt.preview` 可同时安装。
 
 ## 连接原理
 
