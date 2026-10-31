@@ -223,3 +223,12 @@ adb -s emulator-5554 shell am instrument -w -r \
 - Debug / Release Lint 均为 0 errors，分别有 36 / 37 warnings；未新增忽略错误的 baseline。4 项 Python fixture 防护测试通过。
 - 本轮本地没有连接 Android 设备，也未重跑真实 SSH / daemon 集成验证。GitHub Actions 的 API 29 / 35 设备测试结果可在 [CI 运行记录](https://github.com/iawnix/GHub/actions/workflows/check.yml) 查看；这些任务仍不包含需要私有 SSH fixture 的测试。
 - 公开源码排除 `.remote-gpt/` 本地附件、构建目录、签名密钥和本机 SDK 配置。GitHub 发布任务独立构建签名 APK，附件的实际哈希以 Release 中的 `SHA256SUMS` 为准。
+
+## 0.1.35：资源生命周期与 Release 裁剪
+
+- 新增 JVM 回归覆盖闲置会话的数量/字符预算、访问顺序、当前/活动会话保护、后台释放宽限期取消、图片缓存数量/大小/可见图片保护及取消下载清理。本地 13 个 app JVM 测试通过。
+- 隔离 SSH/daemon fixture 的 6 项 JVM 集成检查通过：加密 Ed25519 与 PEM RSA、拒绝错误口令/主机指纹、两级跳板、SFTP 读写与冲突、PTY 命令与尺寸调整。
+- 本地 API 35 常规设备回归通过，覆盖服务器表单旋转恢复、SavedState 不含凭据、文件草稿重新加载、图片缩放按钮以及大字体/软键盘下的输入布局。需要真实 SSH/daemon 参数的原有测试在常规设备任务中跳过。
+- 发布流水线增加 API 36；API 29/35/36 均运行常规设备回归。另在 API 35 上用 `scripts/release_device_check.py` 验证真正非 debuggable、启用 R8/resource shrinking 的 Release 构建，使用临时 SSH 服务和临时加密 Ed25519/RSA 密钥实测启动、序列化、SFTP 和 PTY。测试构建使用测试签名；正式附件仍使用长期发布密钥，生产构建参数一致。
+- R8 保留 SSHJ 与 Bouncy Castle 的反射入口；仅精确忽略 Android 不提供且应用未启用的桌面 JNDI/LDAP/DANE/Kerberos 类型。没有使用全局 `-ignorewarnings`。
+- 本版未完成真机长时间堆分析；缓存上限、资源释放回归与 Lint 不能证明应用完全不存在内存泄漏。活动/当前超大会话、未发送草稿和用户主动保留的终端仍可能占用较多内存。

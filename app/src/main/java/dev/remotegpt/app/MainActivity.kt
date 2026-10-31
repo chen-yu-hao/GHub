@@ -5,8 +5,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.DisposableEffect
@@ -17,11 +15,6 @@ class MainActivity : AppCompatActivity() {
     // The connection owner is process scoped so the foreground service and
     // Activity always observe the same SSH/RPC state.
     private val vm: WorkbenchViewModel by lazy { (application as RemoteApplication).workbench() }
-    override val defaultViewModelProviderFactory: ViewModelProvider.Factory
-        get() = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T = (application as RemoteApplication).workbench() as T
-        }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

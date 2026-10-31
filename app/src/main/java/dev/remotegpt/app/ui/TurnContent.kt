@@ -2,6 +2,7 @@
 package dev.remotegpt.app.ui
 
 import dev.remotegpt.app.tr
+import dev.remotegpt.app.trq
 import dev.remotegpt.app.R
 
 import androidx.compose.foundation.background
@@ -106,10 +107,10 @@ import dev.remotegpt.client.*
         else -> tr(R.string.ui_events_view_details, steps.size)
     }
     val meta = buildList {
-        if (steps.isNotEmpty()) add(tr(R.string.ui_output_events, steps.size))
-        if (commands > 0) add(tr(R.string.ui_output_commands, commands))
-        if (fileCount > 0) add(tr(R.string.ui_output_files, fileCount))
-        if (imageCount > 0) add(tr(R.string.ui_output_images, imageCount))
+        if (steps.isNotEmpty()) add(trq(R.plurals.ui_output_events, steps.size))
+        if (commands > 0) add(trq(R.plurals.ui_output_commands, commands))
+        if (fileCount > 0) add(trq(R.plurals.ui_output_files, fileCount))
+        if (imageCount > 0) add(trq(R.plurals.ui_output_images, imageCount))
     }.joinToString(" · ")
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -169,7 +170,7 @@ import dev.remotegpt.client.*
             }
         }
         if (items.size > visible.size) {
-            Text(tr(R.string.ui_output_more_events, items.size - visible.size),
+            Text(trq(R.plurals.ui_output_more_events, items.size - visible.size),
                 Modifier.padding(horizontal = 4.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -205,7 +206,7 @@ private fun eventShortLabel(kind: String): String = tr(when (kind) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (failed || items.any { !it.complete }) TaskStatusIcon(if (failed) TaskStatus.FAILED else TaskStatus.RUNNING)
                 FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(if (failed) tr(R.string.ui_file_changes_failed) else if (grouped.isNotEmpty()) tr(R.string.chat_turn_files, grouped.size) else tr(R.string.ui_file_change_details),
+                    Text(if (failed) tr(R.string.ui_file_changes_failed) else if (grouped.isNotEmpty()) trq(R.plurals.chat_turn_files, grouped.size) else tr(R.string.ui_file_change_details),
                         style = MaterialTheme.typography.labelMedium)
                     ChangeCounts(total)
                 }
@@ -217,7 +218,7 @@ private fun eventShortLabel(kind: String): String = tr(when (kind) {
                 if (grouped.size > 3) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .5f))
                     TextButton(onClick = { haptic(false); showAll = !showAll }, modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
-                        Text(if (showAll) tr(R.string.chat_fewer_files) else tr(R.string.chat_more_files, grouped.size - 3), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                        Text(if (showAll) tr(R.string.chat_fewer_files) else trq(R.plurals.chat_more_files, grouped.size - 3), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
                         Icon(if (showAll) WorkbenchIcons.ExpandLess else WorkbenchIcons.ChevronRight, null, Modifier.size(16.dp))
                     }
                 }
@@ -284,6 +285,6 @@ private fun eventShortLabel(kind: String): String = tr(when (kind) {
     SelectionContainer { Text(visible, Modifier.horizontalScroll(rememberScrollState()).padding(12.dp),
         fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, softWrap = false) }
     if (lines.size > 60) TextButton(onClick = { full = !full }, modifier = Modifier.fillMaxWidth()) {
-        Text(if (full) tr(R.string.ui_collapse) else tr(R.string.chat_full_diff, lines.size))
+        Text(if (full) tr(R.string.ui_collapse) else trq(R.plurals.chat_full_diff, lines.size))
     }
 }

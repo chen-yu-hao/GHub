@@ -65,6 +65,19 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     private val uploads = mutableMapOf<String, Job>()
     private val persistence = mutableMapOf<String, Job>()
     private val imageLoads = mutableMapOf<String, Job>()
+    private val editorDrafts = EditorDraftStore(File(app.filesDir, "editor-drafts"))
+    private val imageCache = RemoteImageCache(File(app.cacheDir, "remote-images"))
+    private var imageGeneration = 0
+    private var clearingImages = false
+    private val memoryBudgets = mutableMapOf<String, ConversationMemoryBudget>()
+    private val trims = mutableMapOf<String, Job>()
+    private val cacheWrites = Mutex()
+    private val backgroundRelease = BackgroundRelease(viewModelScope) {
+        if (!connectionActive) {
+            (fileRuntimes.keys + runtimes.keys + connections.keys).toSet().forEach { releaseConnection(it) }
+            trimMemory()
+        }
+    }
     private val promptMutex = Mutex()
     private val diagnostic = ArrayDeque<String>()
     internal val syncTimings = SyncTimings()
@@ -106,6 +119,9 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
                     val project = (app.settings.lastProject(profile.id) ?: selected?.cwd?.let(::projectPath))?.takeUnless { it in hidden }
                     update(profile.id) { it.copy(results = receipts, threads = summaries.filterNot { t -> t.archived }, selectedThread = last, selectedSummary = selected,
                         projects = projects, hiddenProjects = hidden, selectedProject = project, filePath = project.orEmpty()) }
+                    editorDrafts.read(profile.id)?.let { draft -> update(profile.id) {
+                        it.copy(editor = TextFile(draft.path, draft.original, draft.sha256), editorText = draft.text)
+                    } }
                     if (last != null) loadCached(profile.id, last)
                     if (connectionActive && profile.id in desiredConnections) connect(profile.id)
                 }
@@ -113,7 +129,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    private fun launchStorage(block: suspend CoroutineScope.() -> Unit) = viewModelScope.launch {
+    private fun launchStorage(start: CoroutineStart = CoroutineStart.DEFAULT, block: suspend CoroutineScope.() -> Unit) = viewModelScope.launch(start = start) {
         try { block() }
         catch (e: CancellationException) { throw e }
         catch (e: java.io.IOException) { storageFailed(e) }
@@ -126,12 +142,50 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun update(host: String, block: (HostWorkspace) -> HostWorkspace) {
+        val previous = ui(host)
         mutable.update { all ->
             val before = all.workspaces[host]
             val after = block(before ?: HostWorkspace())
             if (after === before || after == before) all else all.copy(workspaces = all.workspaces + (host to after))
         }
+        val current = ui(host)
+        val budget = memoryBudgets.getOrPut(host) { ConversationMemoryBudget() }
+        (current.conversations.keys - previous.conversations.keys).forEach(budget::touch)
+        if (current.selectedThread != previous.selectedThread) current.selectedThread?.let(budget::touch)
+        if (current.conversations !== previous.conversations || current.selectedThread != previous.selectedThread ||
+            current.historySyncingThreads != previous.historySyncingThreads || current.approvals != previous.approvals) scheduleTrim(host)
     }
+    private fun pinned(ws: HostWorkspace) = setOfNotNull(ws.selectedThread) +
+        ws.approvals.map { it.request.threadId } + ws.historySyncingThreads
+
+    private fun scheduleTrim(host: String, aggressive: Boolean = false) {
+        if (trims[host]?.isActive == true) return
+        val job = launchStorage(start = CoroutineStart.LAZY) {
+            try {
+                delay(750)
+                val budget = memoryBudgets.getOrPut(host) { ConversationMemoryBudget() }
+                for (thread in budget.evictions(ui(host).conversations, pinned(ui(host)), aggressive)) {
+                    val snapshot = ui(host).conversations[thread] ?: continue
+                    cacheWrites.withLock {
+                        val chunks = withContext(Dispatchers.Default) { cacheConversationChunks(host, thread, snapshot) }
+                        val ws = ui(host)
+                        if (ws.conversations[thread] === snapshot && thread !in pinned(ws) && snapshot.activeTurn == null) {
+                            dao.replaceConversationChunks(host, thread, chunks)
+                            if (ui(host).conversations[thread] === snapshot && thread !in pinned(ui(host))) {
+                                persistence.remove("conversation:$host:$thread")?.cancel()
+                                runtimes[host]?.sessions?.dirty(thread)
+                                update(host) { it.copy(conversations = it.conversations - thread) }
+                            }
+                        }
+                    }
+                }
+            } finally { if (trims[host] === currentCoroutineContext()[Job]) trims.remove(host) }
+        }
+        trims[host] = job
+        job.start()
+    }
+    fun trimMemory() { state.value.workspaces.keys.forEach { host -> trims.remove(host)?.cancel(); scheduleTrim(host, aggressive = true) } }
+
     private fun ui(host: String) = mutable.value.workspaces[host] ?: HostWorkspace()
     fun message(text: String?) { mutable.update { it.copy(message = text) } }
     fun selectTab(tab: WorkspaceTab) {
@@ -233,6 +287,9 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     }
     fun deleteProfile(profile: HostProfile) = launchStorage {
         disconnect(profile.id)
+        trims.remove(profile.id)?.cancel()
+        memoryBudgets.remove(profile.id)
+        editorDrafts.write(profile.id, null)
         persistence.keys.filter { it.contains(":${profile.id}:") }.forEach { persistence.remove(it)?.cancel() }
         ui(profile.id).drafts.values.flatMap { it.attachments }.forEach { uploads.remove(it.id)?.cancel() }
         mutable.update { it.copy(workspaces = it.workspaces - profile.id) }
@@ -287,7 +344,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
             try {
                 record("connect_start", "epoch=${epoch} attempt=${ui(host).reconnectAttempt}")
                 ssh = SshConnection.connect(profile, this@WorkbenchViewModel)
-                fileRuntimes.remove(host)?.let { previous -> if (previous.ssh !== ssh) runCatching { previous.ssh.close() } }
+                fileRuntimes.remove(host)?.let { previous -> if (previous.ssh !== ssh) withContext(NonCancellable + Dispatchers.IO) { runCatching { previous.ssh.close() } } }
                 fileRuntimes[host] = FileRuntime(ssh, RemoteFiles(ssh))
                 stage = "daemon"
                 val cliVersion = ssh.command("${shellQuote(profile.codexPath)} --version").trim()
@@ -380,7 +437,6 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         renderPending.remove(host)
         resultMonitors.remove(host)?.cancel()
         rt.rpc.invalidate()
-        ui(host).terminals.forEach { it.session.markFinished() }
         update(host) { it.copy(approvals = emptyList(), loadingHistory = false, loadingThreads = false) }
         // Keep the SSH transport for SFTP/terminal while only the Codex proxy
         // is being rebuilt. Full disconnect closes it below.
@@ -389,18 +445,24 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun disconnect(host: String? = state.value.activeHost) {
         if (host == null) return
-        imageLoads.keys.filter { it.startsWith("$host:") }.toList().forEach { imageLoads.remove(it)?.cancel() }
-        connectionEpochs[host] = UUID.randomUUID().toString()
         desiredConnections.remove(host)
         retryBlocked.remove(host)
+        launchStorage { app.settings.reconnect(host, false) }
+        releaseConnection(host)
+    }
+
+    private fun releaseConnection(host: String) {
+        ui(host).terminals.forEach { it.session.finishIfRunning() }
+        imageLoads.keys.filter { it.startsWith("$host:") }.toList().forEach { imageLoads.remove(it)?.cancel() }
+        connectionEpochs[host] = UUID.randomUUID().toString()
         reconnectJobs.remove(host)?.cancel()
         healthChecks.remove(host)?.cancel()
         checkAgain.remove(host)
         connections.remove(host)?.cancel()
         runtimes[host]?.let { retireRuntime(host, it) }
         fileRuntimes.remove(host)?.let { runtime -> viewModelScope.launch(Dispatchers.IO) { runCatching { runtime.ssh.close() } } }
-        launchStorage { app.settings.reconnect(host, false) }
-        update(host) { it.copy(connection = ConnectionStatus.OFFLINE, approvals = emptyList(), error = null, reconnectAttempt = 0) }
+        update(host) { it.copy(connection = ConnectionStatus.OFFLINE, approvals = emptyList(), error = null, reconnectAttempt = 0,
+            terminals = emptyList(), selectedTerminal = null, projectTerminals = emptyMap(), imageLoading = emptySet()) }
     }
 
     private fun reconnectOffline(immediate: Boolean = false) {
@@ -512,12 +574,14 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun onForeground() {
         foreground = true
+        backgroundRelease.update(connectionActive)
         record("lifecycle", "foreground")
         (runtimes.keys + connections.keys).toSet().forEach { checkConnection(it) }
         reconnectOffline(immediate = true)
     }
     fun onBackground() {
         foreground = false
+        backgroundRelease.update(connectionActive)
         record("lifecycle", "background")
         if (backgroundKeepAlive) {
             reconnectOffline(immediate = true)
@@ -534,6 +598,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     fun setBackgroundKeepAlive(enabled: Boolean) {
         if (backgroundKeepAlive == enabled) return
         backgroundKeepAlive = enabled
+        backgroundRelease.update(connectionActive)
         mutable.update { it.copy(backgroundKeepAlive = enabled) }
         record("keep_alive", if (enabled) "enabled" else "disabled")
         if (enabled) {
@@ -931,8 +996,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun persistResults(host: String) {
         val key = "results:${host}:state"
-        persistence.remove(key)?.cancel()
-        persistence[key] = launchStorage { delay(200); app.settings.results(host, ui(host).results) }
+        persistLater(key, 200) { app.settings.results(host, ui(host).results) }
     }
 
     fun markResultRead(thread: String) {
@@ -1353,12 +1417,24 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
     fun editFile(path: String) = performFile { host, rt -> val text = rt.files.readText(path); update(host) { it.copy(editor = text, editorText = text.text, fileConflict = false) } }
-    fun editorText(text: String) { state.value.activeHost?.let { id -> update(id) { it.copy(editorText = text) } } }
-    fun closeEditor() { state.value.activeHost?.let { id -> update(id) { it.copy(editor = null, fileConflict = false) } } }
+    fun editorText(text: String) { state.value.activeHost?.let { id -> update(id) { it.copy(editorText = text) }; persistLater("editor:$id:draft", 200) { flushEditor(id) } } }
+    fun closeEditor() { state.value.activeHost?.let { id -> update(id) { it.copy(editor = null, editorText = "", fileConflict = false) }; persistLater("editor:$id:draft", 0) { flushEditor(id) } } }
     fun saveFile(overwrite: Boolean = false) = performFile { host, rt ->
         val ws = ui(host); val file = ws.editor ?: return@performFile
-        try { val saved = rt.files.saveText(file, ws.editorText, overwrite); update(host) { it.copy(editor = saved, editorText = saved.text, fileConflict = false) }; message(tr(R.string.ui_file_saved)) }
+        try {
+            val saved = rt.files.saveText(file, ws.editorText, overwrite)
+            update(host) { current -> if (current.editor != file) current else current.copy(editor = saved,
+                editorText = if (current.editorText == ws.editorText) saved.text else current.editorText, fileConflict = false) }
+            flushEditor(host)
+            message(tr(R.string.ui_file_saved))
+        }
         catch (e: FileConflict) { update(host) { it.copy(fileConflict = true) } }
+    }
+    private suspend fun flushEditor(host: String) {
+        val ws = ui(host)
+        editorDrafts.write(host, ws.editor?.takeIf { it.text != ws.editorText }?.let {
+            EditorDraft(it.path, it.text, it.sha256, ws.editorText)
+        })
     }
     fun attachRemote(file: RemoteFile) {
         val s = state.value; val host = s.activeHost ?: return; val thread = s.workspace.selectedThread ?: run { message(tr(R.string.ui_choose_a_session_first)); return }
@@ -1394,73 +1470,55 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     fun download(path: String, uri: Uri) = performFile { _, rt -> withContext(Dispatchers.IO) {
         app.contentResolver.openOutputStream(uri, "w")?.use { rt.files.download(path, it) } ?: error(tr(R.string.ui_cannot_open_the_save_location))
     }; message(tr(R.string.ui_download_complete)) }
-    private suspend fun downloadImage(rt: FileRuntime, path: String): File {
-        val extension = path.substringAfterLast('.', "jpg").lowercase().takeIf { it.matches(Regex("[a-z0-9]{1,8}")) } ?: "jpg"
-        val file = File(app.cacheDir, "shared/${UUID.randomUUID()}.$extension").apply { parentFile?.mkdirs() }
-        try {
-            withContext(Dispatchers.IO) {
-                file.outputStream().use { rt.files.download(path, it, maxBytes = 20L * 1024 * 1024) }
-            }
-            return file
-        } catch (e: Exception) {
-            file.delete()
-            throw e
-        }
-    }
-
-    /** Download an image once for an inline conversation preview. */
-    fun loadImagePreview(path: String) {
+    private fun requestImage(path: String, show: Boolean) {
+        if (clearingImages) return
         val host = state.value.activeHost ?: return
         val key = "$host:$path"
-        val cached = ui(host).imagePreviews[path]
-        if (cached != null && File(cached).exists()) return
-        if (imageLoads[key]?.isActive == true) return
+        if (imageLoads[key]?.isActive == true) {
+            if (show) {
+                val generation = imageGeneration
+                viewModelScope.launch { imageLoads[key]?.join(); if (generation == imageGeneration) ui(host).imagePreviews[path]?.let { file -> mutable.update { it.copy(previewImage = file) } } }
+            }
+            return
+        }
+        val generation = imageGeneration
         update(host) { it.copy(imageLoading = it.imageLoading + path) }
-        val job = viewModelScope.launch {
+        val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
             try {
-                val rt = waitForFileRuntime(host) ?: error(tr(R.string.ui_remote_files_are_temporarily_unavailable))
-                val file = downloadImage(rt, path)
-                update(host) { it.copy(imagePreviews = it.imagePreviews + (path to file.absolutePath)) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                message(errorText(e))
-            } finally {
-                imageLoads.remove(key)
-                update(host) { it.copy(imageLoading = it.imageLoading - path) }
+                val entry = imageCache.get(key, { state.value.previewImage }) { output ->
+                    val rt = withContext(Dispatchers.Main) { waitForFileRuntime(host) }
+                        ?: error(tr(R.string.ui_remote_files_are_temporarily_unavailable))
+                    rt.files.download(path, output, maxBytes = 20L * 1024 * 1024)
+                }
+                ensureActive()
+                if (generation != imageGeneration) return@launch
+                mutable.update { all -> all.copy(workspaces = all.workspaces.mapValues { (id, ws) ->
+                    ws.copy(imagePreviews = ws.imagePreviews.filterValues { it in entry.retained } +
+                        if (id == host) mapOf(path to entry.file.absolutePath) else emptyMap())
+                }, previewImage = if (show) entry.file.absolutePath else all.previewImage) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { message(errorText(e)) }
+            finally {
+                if (imageLoads[key] === currentCoroutineContext()[Job]) {
+                    imageLoads.remove(key)
+                    update(host) { it.copy(imageLoading = it.imageLoading - path) }
+                }
             }
         }
         imageLoads[key] = job
+        job.start()
     }
-
-    fun previewImage(path: String) {
-        val activeHost = state.value.activeHost
-        val cached = activeHost?.let { ui(it).imagePreviews[path] }?.let(::File)?.takeIf { it.exists() }
-        if (cached != null) {
-            mutable.update { it.copy(previewImage = cached.absolutePath) }
-            return
-        }
-        performFile { host, rt ->
-            val file = downloadImage(rt, path)
-            val previous = state.value.previewImage
-            previous?.takeUnless { it == file.absolutePath }?.let { old ->
-                val retained = ui(host).imagePreviews.values.any { it == old }
-                if (!retained) runCatching { File(old).delete() }
-            }
-            update(host) { it.copy(imagePreviews = it.imagePreviews + (path to file.absolutePath)) }
-            mutable.update { it.copy(previewImage = file.absolutePath) }
-        }
-    }
-    fun dismissImage() {
-        val path = state.value.previewImage
-        mutable.update { it.copy(previewImage = null) }
-        val retained = state.value.workspace.imagePreviews.values.any { it == path }
-        if (!retained) path?.let { runCatching { File(it).delete() } }
-    }
+    fun loadImagePreview(path: String) = requestImage(path, show = false)
+    fun previewImage(path: String) = requestImage(path, show = true)
+    fun dismissImage() { mutable.update { it.copy(previewImage = null) } }
 
     fun newTerminal() = performFile { host, rt ->
         val project = ui(host).selectedProject ?: return@performFile
         val remote = rt.ssh.terminal(cwd = project.ifBlank { ui(host).filePath })
+        if (fileRuntimes[host] !== rt) {
+            withContext(NonCancellable + Dispatchers.IO) { runCatching { remote.close() } }
+            return@performFile
+        }
         val writes = Channel<ByteArray>(128)
         val sizes = Channel<Pair<Int, Int>>(Channel.CONFLATED)
         val io = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -1503,29 +1561,38 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun persistConversation(host: String, thread: String) {
         val key = "conversation:${host}:${thread}"
-        persistence.remove(key)?.cancel()
-        persistence[key] = launchStorage {
-            delay(350)
+        persistLater(key, 350) { cacheWrites.withLock {
             ui(host).conversations[thread]?.let { conversation ->
                 val chunks = withContext(Dispatchers.Default) { cacheConversationChunks(host, thread, conversation) }
                 dao.replaceConversationChunks(host, thread, chunks)
             }
+        } }
+    }
+    private fun persistLater(key: String, milliseconds: Long, block: suspend () -> Unit) {
+        persistence.remove(key)?.cancel()
+        val job = launchStorage(start = CoroutineStart.LAZY) {
+            try { delay(milliseconds); block() }
+            finally { if (persistence[key] === currentCoroutineContext()[Job]) persistence.remove(key) }
         }
+        persistence[key] = job
+        job.start()
     }
     private fun persistDraft(host: String, thread: String) {
         val key = "draft:${host}:${thread}"
-        persistence.remove(key)?.cancel()
-        persistence[key] = launchStorage { delay(200); flushDraft(host, thread) }
+        persistLater(key, 200) { flushDraft(host, thread) }
     }
     private suspend fun flushDraft(host: String, thread: String) { ui(host).drafts[thread]?.let { dao.putDraft(DraftRow(host, thread, wireJson.encodeToString(it))) } }
     fun flush() = launchStorage {
         state.value.workspaces.forEach { (host, ws) ->
+            flushEditor(host)
             app.settings.results(host, ws.results)
             ws.drafts.forEach { (thread, _) -> flushDraft(host, thread) }
-            ws.conversations.forEach { (thread, c) ->
-                val chunks = withContext(Dispatchers.Default) { cacheConversationChunks(host, thread, c) }
-                dao.replaceConversationChunks(host, thread, chunks)
-            }
+            ws.conversations.keys.forEach { thread -> cacheWrites.withLock {
+                ui(host).conversations[thread]?.let { c ->
+                    val chunks = withContext(Dispatchers.Default) { cacheConversationChunks(host, thread, c) }
+                    dao.replaceConversationChunks(host, thread, chunks)
+                }
+            } }
         }
     }
 
@@ -1544,10 +1611,19 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
     fun clearCache() = launchStorage {
+        imageGeneration++
+        imageLoads.values.forEach { it.cancel() }; imageLoads.clear()
+        trims.values.forEach { it.cancel() }; trims.clear()
+        memoryBudgets.clear()
+        mutable.update { all -> all.copy(previewImage = null, workspaces = all.workspaces.mapValues { (_, ws) ->
+            ws.copy(imagePreviews = emptyMap(), imageLoading = emptySet())
+        }) }
+        clearingImages = true
+        try { imageCache.clear() } finally { clearingImages = false }
         persistence.keys.filter { it.startsWith("conversation:") }.forEach { persistence.remove(it)?.cancel() }
         runtimes.values.forEach { it.sessions.clearHistory() }
         mutable.update { all -> all.copy(workspaces = all.workspaces.mapValues { (_, ws) -> ws.copy(conversations = emptyMap(), threads = emptyList(), nextThreads = null) }) }
-        dao.clearConversations(); dao.clearConversationChunks(); dao.clearThreads()
+        cacheWrites.withLock { dao.clearConversations(); dao.clearConversationChunks(); dao.clearThreads() }
         runtimes.values.forEach { it.persistedThreads.clear() }
         message(tr(R.string.ui_local_session_cache_cleared_drafts_are_preserved))
     }
@@ -1563,14 +1639,14 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     override fun onCleared() {
-        // The foreground service owns this process-wide instance while it is
-        // active. Activity recreation must not close its sockets or cancel its
-        // viewModelScope.
-        if (backgroundKeepAlive) return
         network.unregisterNetworkCallback(networkCallback)
         state.value.workspaces.values.flatMap { it.terminals }.forEach { it.session.finishIfRunning() }
-        runtimes.values.forEach { it.rpc.close() }
-        fileRuntimes.values.forEach { runCatching { it.ssh.close() } }
+        val rpc = runtimes.values.map { it.rpc }
+        val ssh = fileRuntimes.values.map { it.ssh }
+        CoroutineScope(Dispatchers.IO).launch {
+            rpc.forEach { runCatching { it.close() } }
+            ssh.forEach { runCatching { it.close() } }
+        }
         super.onCleared()
     }
 }

@@ -121,7 +121,7 @@ import java.io.File
                     item.imagePaths.forEachIndexed { index, path ->
                         val imageName = path.substringAfterLast('/').ifBlank { tr(R.string.ui_image) }
                         val local = imagePreviews[path]
-                        if (local != null && File(local).exists()) {
+                        if (local != null) {
                             ImageThumbnail(
                                 File(local), imageName,
                                 Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 260.dp)

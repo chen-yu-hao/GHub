@@ -65,6 +65,7 @@ jobs:
           path: |
             codex-client/build/reports/tests/
             app/build/reports/
+            app/build/outputs/mapping/release/
       - name: Remove signing material
         if: always()
         run: rm -f "${{ runner.temp }}/release.jks"

@@ -403,11 +403,8 @@
     <string name="ui_hide_project">从首页移除</string>
     <string name="ui_hide_project_hint">保留会话和文件，可通过添加项目恢复。</string>
     <string name="ui_project_hidden">已从首页移除，可通过添加项目恢复。</string>
-    <string name="chat_turn_files">本轮更改 %1$d 个文件</string>
-    <string name="chat_more_files">查看另外 %1$d 个文件</string>
     <string name="chat_fewer_files">收起文件列表</string>
     <string name="chat_show_diff">查看 %1$s 的改动</string>
-    <string name="chat_full_diff">查看完整 diff · %1$d 行</string>
     <string name="chat_copy_reply">复制回复</string>
     <string name="chat_share_reply">分享回复</string>
     <string name="chat_share_unavailable">没有可用的分享应用，可以复制回复。</string>
@@ -428,11 +425,6 @@
     <string name="ui_output_synced" formatted="false">已同步</string>
     <string name="ui_output_waiting_to_sync" formatted="false">等待同步</string>
     <string name="ui_output_live" formatted="false">实时</string>
-    <string name="ui_output_events">%1$d 条记录</string>
-    <string name="ui_output_commands">%1$d 条命令</string>
-    <string name="ui_output_files">%1$d 个文件</string>
-    <string name="ui_output_images">%1$d 张图片</string>
-    <string name="ui_output_more_events">另有 %1$d 条</string>
     <string name="ui_output_command_short" formatted="false">命令</string>
     <string name="ui_output_files_short" formatted="false">文件</string>
     <string name="ui_output_reasoning_short" formatted="false">思考</string>
@@ -440,4 +432,33 @@
     <string name="ui_output_reply_short" formatted="false">回复</string>
     <string name="ui_output_event_short" formatted="false">记录</string>
     <string name="ui_output_assistant" formatted="false">Codex</string>
+
+    <plurals name="chat_turn_files">
+        <item quantity="other">本轮更改 %1$d 个文件</item>
+    </plurals>
+    <plurals name="chat_more_files">
+        <item quantity="other">查看另外 %1$d 个文件</item>
+    </plurals>
+    <plurals name="chat_full_diff">
+        <item quantity="other">查看完整 diff · %1$d 行</item>
+    </plurals>
+    <plurals name="ui_output_events">
+        <item quantity="other">%1$d 条记录</item>
+    </plurals>
+    <plurals name="ui_output_commands">
+        <item quantity="other">%1$d 条命令</item>
+    </plurals>
+    <plurals name="ui_output_files">
+        <item quantity="other">%1$d 个文件</item>
+    </plurals>
+    <plurals name="ui_output_images">
+        <item quantity="other">%1$d 张图片</item>
+    </plurals>
+    <plurals name="ui_output_more_events">
+        <item quantity="other">另有 %1$d 条</item>
+    </plurals>
+    <string name="ui_background_without_notifications">后台连接已开启。通知未授权，可在系统的运行中应用中停止。</string>
+    <string name="ui_zoom_in">放大</string>
+    <string name="ui_zoom_out">缩小</string>
+    <string name="ui_image_zoom_percent">%1$d%%</string>
 </resources>

@@ -32,21 +32,20 @@ import dev.remotegpt.app.*
 import dev.remotegpt.client.*
 import kotlinx.coroutines.*
 
-@Composable fun HostEditor(initial: HostProfile, vm: WorkbenchViewModel, snackbar: SnackbarHostState? = null, onClose: () -> Unit) {
-    var profile by remember { mutableStateOf(initial) }
-    var credentials by remember { mutableStateOf<Map<String, Credential>>(emptyMap()) }
-    var loading by remember { mutableStateOf(true) }
-    var importTarget by remember { mutableStateOf("") }
+@Composable fun HostEditor(editor: HostEditorViewModel, vm: WorkbenchViewModel, snackbar: SnackbarHostState? = null, onClose: () -> Unit) {
+    val profile = editor.profile ?: return
+    val credentials = editor.credentials
+    val loading = editor.loading
     var deleting by remember { mutableStateOf(false) }
-    var advanced by rememberSaveable { mutableStateOf(initial.jumps.isNotEmpty() || initial.codexPath != "codex" || initial.socketPath.isNotBlank()) }
+    var advanced by rememberSaveable { mutableStateOf(profile.jumps.isNotEmpty() || profile.codexPath != "codex" || profile.socketPath.isNotBlank()) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    LaunchedEffect(initial.id) {
-        try { credentials = (initial.jumps + initial.endpoint).associate { it.credentialId to vm.credential(it.credentialId) } }
+    LaunchedEffect(profile.id) {
+        try { editor.loadCredentials(vm::credential) }
+        catch (e: CancellationException) { throw e }
         catch (_: Exception) { error = tr(R.string.ui_saved_credentials_cannot_be_decrypted_import_them) }
-        finally { loading = false }
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch {
@@ -55,12 +54,14 @@ import kotlinx.coroutines.*
                     readLimited(stream, 65536).decodeToString()
                 } ?: error(tr(R.string.ui_cannot_read_private_key)) }
                 require(text.contains("PRIVATE KEY")) { tr(R.string.ui_select_a_private_key_not_a_pub) }
-                credentials = credentials + (importTarget to (credentials[importTarget] ?: Credential()).copy(privateKey = text))
+                val target = editor.importTarget
+                editor.updateCredential(target, (editor.credentials[target] ?: Credential()).copy(privateKey = text))
                 error = null
-            } catch (e: Exception) { error = e.message }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { error = e.message }
         }
     }
-    fun changeSecret(id: String, secret: Credential) { credentials = credentials + (id to secret) }
+    fun changeSecret(id: String, secret: Credential) { editor.updateCredential(id, secret) }
     val valid = !loading && profile.name.isNotBlank() && profile.codexPath.isNotBlank() && (profile.jumps + profile.endpoint).all {
         it.host.isNotBlank() && it.username.isNotBlank() && it.port in 1..65535 &&
             (it.auth != AuthKind.PRIVATE_KEY || !credentials[it.credentialId]?.privateKey.isNullOrBlank())
@@ -78,13 +79,13 @@ import kotlinx.coroutines.*
                 }
             }) { padding ->
             LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                item { OutlinedTextField(profile.name, { profile = profile.copy(name = it) }, label = { Text(tr(R.string.ui_connection_name)) }, placeholder = { Text(tr(R.string.ui_for_example_development_server)) }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()), singleLine = true) }
+                item { OutlinedTextField(profile.name, { editor.updateProfile(profile.copy(name = it)) }, label = { Text(tr(R.string.ui_connection_name)) }, placeholder = { Text(tr(R.string.ui_for_example_development_server)) }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()), singleLine = true) }
                 item {
                     WorkbenchSurface() {
                     Column(Modifier.padding(16.dp)) {
                     EndpointFields(tr(R.string.ui_target_host), profile.endpoint, credentials[profile.endpoint.credentialId] ?: Credential(),
-                        onEndpoint = { profile = profile.copy(endpoint = it) }, onCredential = { changeSecret(profile.endpoint.credentialId, it) },
-                        onImport = { importTarget = profile.endpoint.credentialId; picker.launch(arrayOf("*/*")) })
+                        onEndpoint = { editor.updateProfile(profile.copy(endpoint = it)) }, onCredential = { changeSecret(profile.endpoint.credentialId, it) },
+                        onImport = { editor.importTarget = profile.endpoint.credentialId; picker.launch(arrayOf("*/*")) })
                     }
                     }
                 }
@@ -97,31 +98,31 @@ import kotlinx.coroutines.*
                     OutlinedCard {
                         Column(Modifier.padding(14.dp)) {
                             EndpointFields(tr(R.string.ui_hop , index + 1), endpoint, credentials[endpoint.credentialId] ?: Credential(),
-                                onEndpoint = { updated -> profile = profile.copy(jumps = profile.jumps.toMutableList().also { it[index] = updated }) },
-                                onCredential = { changeSecret(endpoint.credentialId, it) }, onImport = { importTarget = endpoint.credentialId; picker.launch(arrayOf("*/*")) })
-                            TextButton(onClick = { profile = profile.copy(jumps = profile.jumps.filterNot { it.credentialId == endpoint.credentialId }) }) { Text(tr(R.string.ui_remove_jump_host)) }
+                                onEndpoint = { updated -> editor.updateProfile(profile.copy(jumps = profile.jumps.toMutableList().also { it[index] = updated })) },
+                                onCredential = { changeSecret(endpoint.credentialId, it) }, onImport = { editor.importTarget = endpoint.credentialId; picker.launch(arrayOf("*/*")) })
+                            TextButton(onClick = { editor.updateProfile(profile.copy(jumps = profile.jumps.filterNot { it.credentialId == endpoint.credentialId })) }) { Text(tr(R.string.ui_remove_jump_host)) }
                         }
                     }
                 }
-                item { OutlinedButton(onClick = { profile = profile.copy(jumps = profile.jumps + SshEndpoint()) }) { Icon(WorkbenchIcons.Add, null); Text(tr(R.string.ui_add_jump_host)) } }
+                item { OutlinedButton(onClick = { editor.updateProfile(profile.copy(jumps = profile.jumps + SshEndpoint())) }) { Icon(WorkbenchIcons.Add, null); Text(tr(R.string.ui_add_jump_host)) } }
                 item {
                     HorizontalDivider(); Spacer(Modifier.height(16.dp)); Text(tr(R.string.ui_remote_codex), style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(profile.codexPath, { profile = profile.copy(codexPath = it) }, label = { Text(tr(R.string.ui_executable_path)) }, supportingText = { Text(tr(R.string.ui_for_example_codex_or_home_user_local)) }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()), singleLine = true)
+                    OutlinedTextField(profile.codexPath, { editor.updateProfile(profile.copy(codexPath = it)) }, label = { Text(tr(R.string.ui_executable_path)) }, supportingText = { Text(tr(R.string.ui_for_example_codex_or_home_user_local)) }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()), singleLine = true)
                     Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(profile.defaultCwd, { profile = profile.copy(defaultCwd = it) }, label = { Text(tr(R.string.ui_default_working_directory)) }, placeholder = { Text("/home/user/project") }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()), singleLine = true)
+                    OutlinedTextField(profile.defaultCwd, { editor.updateProfile(profile.copy(defaultCwd = it)) }, label = { Text(tr(R.string.ui_default_working_directory)) }, placeholder = { Text("/home/user/project") }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()), singleLine = true)
                     Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(profile.socketPath, { profile = profile.copy(socketPath = it) }, label = { Text(tr(R.string.ui_service_socket_path_optional)) }, supportingText = { Text(tr(R.string.ui_leave_empty_to_use_the_default_shared)) }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()), singleLine = true)
+                    OutlinedTextField(profile.socketPath, { editor.updateProfile(profile.copy(socketPath = it)) }, label = { Text(tr(R.string.ui_service_socket_path_optional)) }, supportingText = { Text(tr(R.string.ui_leave_empty_to_use_the_default_shared)) }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()), singleLine = true)
                 }
                 }
                 error?.let { text -> item { Text(text, color = MaterialTheme.colorScheme.error) } }
                 item { Text(tr(R.string.ui_credentials_are_encrypted_on_this_device_host), style = MaterialTheme.typography.bodySmall) }
-                if (vm.state.value.profiles.any { it.id == initial.id }) item { TextButton(onClick = { deleting = true }) { Text(tr(R.string.ui_delete_server_connection), color = MaterialTheme.colorScheme.error) } }
+                if (vm.state.value.profiles.any { it.id == profile.id }) item { TextButton(onClick = { deleting = true }) { Text(tr(R.string.ui_delete_server_connection), color = MaterialTheme.colorScheme.error) } }
             }
         }
     }
     if (deleting) AlertDialog(onDismissRequest = { deleting = false }, title = { Text(tr(R.string.ui_delete_server_connection_160)) }, text = { Text(tr(R.string.ui_this_removes_the_connection_and_credentials_saved)) },
-        confirmButton = { TextButton(onClick = { vm.deleteProfile(initial); onClose() }) { Text(tr(R.string.ui_delete)) } }, dismissButton = { TextButton(onClick = { deleting = false }) { Text(tr(R.string.ui_cancel)) } })
+        confirmButton = { TextButton(onClick = { vm.state.value.profiles.firstOrNull { it.id == profile.id }?.let(vm::deleteProfile); onClose() }) { Text(tr(R.string.ui_delete)) } }, dismissButton = { TextButton(onClick = { deleting = false }) { Text(tr(R.string.ui_cancel)) } })
 }
 
 @Composable private fun EndpointFields(title: String, endpoint: SshEndpoint, secret: Credential, onEndpoint: (SshEndpoint) -> Unit, onCredential: (Credential) -> Unit, onImport: () -> Unit) {
@@ -140,9 +141,9 @@ import kotlinx.coroutines.*
         when (endpoint.auth) {
             AuthKind.PRIVATE_KEY -> {
                 OutlinedButton(onClick = onImport) { Icon(WorkbenchIcons.Key, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(if (secret.privateKey.isBlank()) tr(R.string.ui_import_private_key) else tr(R.string.ui_key_imported_replace)) }
-                OutlinedTextField(secret.passphrase, { onCredential(secret.copy(passphrase = it)) }, label = { Text(tr(R.string.ui_key_passphrase_optional)) }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()))
+                OutlinedTextField(secret.passphrase, { onCredential(secret.copy(passphrase = it)) }, label = { Text(tr(R.string.ui_key_passphrase_optional)) }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), singleLine = true, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()))
             }
-            AuthKind.PASSWORD -> OutlinedTextField(secret.password, { onCredential(secret.copy(password = it)) }, label = { Text(tr(R.string.ui_ssh_password)) }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()))
+            AuthKind.PASSWORD -> OutlinedTextField(secret.password, { onCredential(secret.copy(password = it)) }, label = { Text(tr(R.string.ui_ssh_password)) }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), singleLine = true, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()))
             AuthKind.INTERACTIVE -> Text(tr(R.string.ui_enter_the_password_or_verification_code_requested), style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -178,7 +179,8 @@ import kotlinx.coroutines.*
                     if (prompt.challenge.instruction.isNotBlank()) Text(prompt.challenge.instruction)
                     prompt.challenge.prompts.forEachIndexed { index, (label, echo) ->
                         OutlinedTextField(answers[index], { text -> answers = answers.toMutableList().also { it[index] = text } }, label = { Text(label) }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()),
-                            visualTransformation = if (echo) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation())
+                            visualTransformation = if (echo) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = if (echo) KeyboardType.Text else KeyboardType.Password, autoCorrectEnabled = false))
                     }
                 } }, confirmButton = { TextButton(onClick = { prompt.answer.complete(answers) }) { Text(tr(R.string.ui_continue)) } }, dismissButton = { TextButton(onClick = { prompt.answer.cancel() }) { Text(tr(R.string.ui_cancel)) } })
         }

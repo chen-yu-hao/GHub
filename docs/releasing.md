@@ -26,3 +26,7 @@ GitHub 发布工作流由 `v*` 标签触发，需要这些仓库 secrets：
 发布证书 SHA-256 指纹：`EC:A8:41:A3:86:BC:9C:82:79:23:AC:A0:72:9B:D2:78:B2:B7:E7:9C:09:BB:8E:2F:B3:03:73:F1:C7:92:F6:20`。
 
 Debug 与 Release 使用不同签名，不能互相覆盖安装同一包名；测试模拟器使用 Debug，首次安装 Release 时需卸载 Debug。卸载会清除本机配置和草稿，远端任务不受影响。
+
+从 0.1.35 起，发布先复用完整检查工作流（JVM、Lint、API 29/35/36 常规设备测试、API 35 精简 Release 的真实 SSH 测试），全部通过才构建并公开附件。R8 mapping 随 CI 验证报告保留，用于还原混淆堆栈。
+
+本地精简 Release 冒烟测试：在可丢弃的模拟器上设置 `ANDROID_SERIAL` 后运行 `python3 scripts/release_device_check.py`。脚本创建独立 OpenSSH 服务及临时密钥；使用 `-PtestBuildType=release` 选择专用测试源码。如果未设置正式签名环境变量，此测试构建使用 Debug 密钥但保持 `debuggable=false`、R8 与资源裁剪开启。不要将测试签名包当作正式发布附件。

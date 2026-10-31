@@ -43,7 +43,8 @@ import java.util.UUID
     var renameProject by rememberSaveable { mutableStateOf<String?>(null) }
     var showHosts by rememberSaveable { mutableStateOf(false) }
     var showHostSwitcher by rememberSaveable { mutableStateOf(false) }
-    var editProfile by remember { mutableStateOf<HostProfile?>(null) }
+    val hostEditor: HostEditorViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val editProfile = hostEditor.profile
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showHostDetail by rememberSaveable { mutableStateOf(false) }
     var hostsFromSettings by rememberSaveable { mutableStateOf(false) }
@@ -72,7 +73,9 @@ import java.util.UUID
     DisposableEffect(Unit) { onDispose { speech.cancel() } }
     val microphone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) speech.start() else vm.message(tr(R.string.ui_microphone_permission_was_denied_you_can_continue)) }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) RemoteConnectionService.start(context) else vm.message(tr(R.string.ui_notification_permission_is_required_to_display_background))
+        runCatching { RemoteConnectionService.start(context) }
+            .onSuccess { if (!granted) vm.message(tr(R.string.ui_background_without_notifications)) }
+            .onFailure { vm.message(tr(R.string.ui_cannot_keep_the_connection_active_check_notification)) }
     }
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri -> vm.upload(uri, true) } }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri -> vm.upload(uri, false) } }
@@ -113,7 +116,7 @@ import java.util.UUID
     }
     BackHandler(!showHome && editProfile == null && !showSettings && !showHosts && !showWorkspace && !showProjectEditor && !showHostDetail) { vm.navigateBack() }
 
-    if (editProfile != null) HostEditor(editProfile!!, vm, snackbar = snackbars, onClose = { editProfile = null })
+    if (editProfile != null) HostEditor(hostEditor, vm, snackbar = snackbars, onClose = hostEditor::close)
     else if (showSettings) SettingsScreen(state.theme, state.profiles.size, state.backgroundKeepAlive, onBack = { showSettings = false },
         onTheme = vm::theme, onHosts = { hostsFromSettings = true; showSettings = false; showHosts = true },
         onKeepAlive = { enabled -> runCatching {
@@ -126,9 +129,9 @@ import java.util.UUID
     else if (showHosts) HostsScreen(state.profiles, state.workspaces,
         onBack = { showHosts = false; showSettings = hostsFromSettings },
         onOpen = { vm.selectHost(it.id); showHosts = false; showHostDetail = true },
-        onAdd = { editProfile = HostProfile() }, snackbar = snackbars)
+        onAdd = { hostEditor.open(HostProfile()) }, snackbar = snackbars)
     else if (showHostDetail && state.profile != null) HostDetailsScreen(state.profile!!, state.workspace,
-        onBack = { showHostDetail = false; showHosts = true }, onEdit = { editProfile = state.profile },
+        onBack = { showHostDetail = false; showHosts = true }, onEdit = { state.profile?.let(hostEditor::open) },
         onConnect = { if (state.workspace.needsBootstrap) showBootstrap = true else vm.connect() }, onDisconnect = { vm.disconnect() },
         onProjects = { showHostDetail = false; vm.backToProjects() }, snackbar = snackbars)
     else GlassWorkbenchScaffold(

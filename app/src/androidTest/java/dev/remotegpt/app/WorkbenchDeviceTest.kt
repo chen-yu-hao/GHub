@@ -1,6 +1,5 @@
 package dev.remotegpt.app
 
-import androidx.lifecycle.ViewModelProvider
 import android.graphics.Bitmap
 import org.junit.runners.MethodSorters
 import java.io.FileOutputStream
@@ -67,7 +66,7 @@ class WorkbenchDeviceTest {
         val profile = HostProfile(name = "验证主机", endpoint = endpoint, codexPath = args.getString("codexPath")!!)
         val thread = args.getString("threadId")!!
         lateinit var vm: WorkbenchViewModel
-        compose.runOnIdle { vm = ViewModelProvider(compose.activity)[WorkbenchViewModel::class.java] }
+        compose.runOnIdle { vm = app.workbench() }
         app.settings.trust(endpoint.host, endpoint.port, args.getString("fingerprint")!!)
         val key = File(app.filesDir, "device-test-key").readText()
         lateinit var save: kotlinx.coroutines.Job
@@ -134,7 +133,7 @@ class WorkbenchDeviceTest {
             android.util.Log.i("WorkbenchCheck", "vim and tmux reconnect passed")
             compose.activityRule.scenario.recreate()
             compose.waitUntil(20_000) { vm.state.value.workspace.terminals.isNotEmpty() }
-            compose.runOnIdle { assertSame(vm, ViewModelProvider(compose.activity)[WorkbenchViewModel::class.java]) }
+            compose.runOnIdle { assertSame(vm, app.workbench()) }
             compose.runOnIdle { vm.selectTab(WorkspaceTab.SESSIONS) }
             assertEquals("保留的中文草稿", vm.state.value.draft.text)
             val image = File(app.cacheDir, "shared/device-image.png").apply { parentFile!!.mkdirs() }

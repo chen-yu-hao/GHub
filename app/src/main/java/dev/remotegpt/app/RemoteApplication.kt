@@ -8,6 +8,10 @@ class RemoteApplication : Application() {
     val crashes by lazy { CrashDiagnostics(this) }
     @Volatile private var workbenchInstance: WorkbenchViewModel? = null
     override fun onCreate() { super.onCreate(); AppStrings.initialize(this); crashes.install() }
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_RUNNING_LOW) workbenchInstance?.trimMemory()
+    }
     val database by lazy { Room.databaseBuilder(this, AppDatabase::class.java, "workbench.db").addMigrations(MIGRATION_1_2).build() }
     val secrets by lazy { SecretStore(this) }
     val settings by lazy { Settings(this) }

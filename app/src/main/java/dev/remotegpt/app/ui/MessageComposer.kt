@@ -90,7 +90,7 @@ import dev.remotegpt.client.ModelOption
             val hasContent = draft.text.isNotBlank() || draft.attachments.isNotEmpty()
             BasicTextField(
                 value = draft.text, onValueChange = onText, enabled = editable, minLines = 1, maxLines = 5,
-                modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
+                modifier = Modifier.weight(1f, fill = false).fillMaxWidth().background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .heightIn(min = 28.dp, max = LocalComposerTextHeight.current)
                     .onFocusChanged { focused = it.isFocused }

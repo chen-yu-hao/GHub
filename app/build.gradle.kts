@@ -13,10 +13,12 @@ android {
         resValue("string", "app_name", if (providers.gradleProperty("previewApplicationId").isPresent) "GHub Preview" else "GHub")
         minSdk = 29
         targetSdk = 36
-        versionCode = 35
-        versionName = "0.1.34"
+        versionCode = 36
+        versionName = "0.1.35"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    testBuildType = providers.gradleProperty("testBuildType").orElse("debug").get()
+    if (testBuildType == "release") sourceSets["androidTest"].java.setSrcDirs(listOf("src/releaseTest/java"))
     sourceSets["main"].assets.srcDir(rootProject.file("licenses"))
     bundle { language { enableSplit = false } }
     buildFeatures { compose = true; buildConfig = true }
@@ -34,8 +36,11 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (System.getenv("RELEASE_KEYSTORE") != null) signingConfig = signingConfigs.getByName("release")
+            else if (providers.gradleProperty("testBuildType").orNull == "release") signingConfig = signingConfigs.getByName("debug")
         }
     }
     packaging { resources.excludes += setOf("META-INF/DEPENDENCIES", "META-INF/INDEX.LIST", "META-INF/versions/9/OSGI-INF/MANIFEST.MF") }
@@ -67,6 +72,7 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("dev.chrisbanes.haze:haze:1.6.10")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

@@ -8,7 +8,7 @@ GHub 是开源 Android 远程 Codex 工作台。通过 SSH 管理 Linux 上的�
 
 ## 下载
 
-从 [GitHub Releases](https://github.com/iawnix/GHub/releases/latest) 下载 `ghub.apk`，支持 Android 10 及更新版本。每个版本附带 SHA-256 校验和及对应源码。正式包名为 `dev.remotegpt.app`，与开发预览版 `dev.remotegpt.preview` 可同时安装。
+从 [GitHub Releases](https://github.com/iawnix/GHub/releases/latest) 下载 `ghub.apk`，支持 Android 10 及更新版本。每个版本附带 SHA-256 校验和及对应源码。当前版本 `0.1.35`。正式包名为 `dev.remotegpt.app`，与开发预览版 `dev.remotegpt.preview` 可同时安装。
 
 ## 连接原理
 
@@ -34,7 +34,7 @@ SSH 非交互环境可能不包含你的 Node/npm 路径。此时填写 Codex �
 
 手机只管理连接与界面，任务生命周期由远端服务决定。断网后可重连恢复会话，发送结果不确定时需要核对历史，App 不自动重发。离线期间不提供即时推送。
 
-0.1.7 增加网络切换与回前台连接检查、持续退避重连、流式事件合并及分类诊断。没有可用网络时暂停尝试，恢复后同步原会话；不承诺后台长期保活。实现和验证边界见 [连接恢复](docs/connection-recovery.md)。
+0.1.7 增加网络切换与回前台连接检查、持续退避重连、流式事件合并及分类诊断。没有可用网络时暂停尝试，恢复后同步原会话；未开启后台保持时，退到后台 30 秒后释放连接和终端，回前台自动恢复连接；需要保留 shell 任务请使用 tmux。即使开启后台保持，也不承诺后台长期保活。实现和验证边界见 [连接恢复](docs/connection-recovery.md)。
 
 0.1.9 将会话缓存迁移为分片记录，并在顶部提供直接的服务器切换面板。旧版本缓存会在迁移后逐步转换，不删除远端会话。
 

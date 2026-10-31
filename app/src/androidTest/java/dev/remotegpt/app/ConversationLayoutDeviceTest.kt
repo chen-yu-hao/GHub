@@ -46,7 +46,7 @@ class ConversationLayoutDeviceTest {
         compose.onNodeWithText(fullPath).assertDoesNotExist()
         compose.onNodeWithText("Components.kt").performScrollTo().performClick()
         compose.onNodeWithText(fullPath).assertExists()
-        compose.onNodeWithText(context.getString(R.string.chat_more_files, 2)).performScrollTo().performClick()
+        compose.onNodeWithText(context.resources.getQuantityString(R.plurals.chat_more_files, 2, 2)).performScrollTo().performClick()
         compose.onNodeWithText("ui-design.md").assertExists()
         compose.onNodeWithContentDescription(context.getString(R.string.chat_copy_reply)).performScrollTo().performClick()
         compose.runOnIdle {

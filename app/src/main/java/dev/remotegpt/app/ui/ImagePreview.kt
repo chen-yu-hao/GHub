@@ -13,6 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -60,6 +65,8 @@ import java.io.File
         offsetX = 0f
         offsetY = 0f
     }
+    val zoomIn = { scale = (scale + .5f).coerceAtMost(6f) }
+    val zoomOut = { scale = (scale - .5f).coerceAtLeast(1f); if (scale == 1f) reset() }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box(Modifier.fillMaxSize().systemBarsPadding()) {
             AsyncImage(
@@ -68,6 +75,14 @@ import java.io.File
                 contentScale = ContentScale.Fit,
                 onState = { state = it },
                 modifier = Modifier.fillMaxSize()
+                    .semantics {
+                        stateDescription = tr(R.string.ui_image_zoom_percent, (scale * 100).toInt())
+                        customActions = listOf(
+                            CustomAccessibilityAction(tr(R.string.ui_zoom_in)) { zoomIn(); true },
+                            CustomAccessibilityAction(tr(R.string.ui_zoom_out)) { zoomOut(); true },
+                            CustomAccessibilityAction(tr(R.string.ui_reset_image_zoom)) { reset(); true },
+                        )
+                    }
                     .pointerInput(path) {
                         detectTransformGestures { _, pan, zoom, _ ->
                             scale = (scale * zoom).coerceIn(1f, 6f)
@@ -98,9 +113,12 @@ import java.io.File
                 color = glassSurfaceColor(lightAlpha = .88f, darkAlpha = .88f), border = BorderStroke(1.dp, glassBorderColor())) {
                 IconButton(onClick = onClose) { Icon(WorkbenchIcons.Close, tr(R.string.ui_close), Modifier.size(22.dp)) }
             }
-            if (scale > 1.01f) {
-                TextButton(onClick = reset, Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp)) {
-                    Text(tr(R.string.ui_reset_image_zoom))
+            Surface(Modifier.align(Alignment.BottomCenter).padding(8.dp), shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = zoomOut, enabled = scale > 1f) { Icon(WorkbenchIcons.TextDecrease, tr(R.string.ui_zoom_out)) }
+                    TextButton(onClick = reset, modifier = Modifier.semantics { contentDescription = tr(R.string.ui_reset_image_zoom) }) { Text(tr(R.string.ui_image_zoom_percent, (scale * 100).toInt())) }
+                    IconButton(onClick = zoomIn, enabled = scale < 6f) { Icon(WorkbenchIcons.TextIncrease, tr(R.string.ui_zoom_in)) }
                 }
             }
         }

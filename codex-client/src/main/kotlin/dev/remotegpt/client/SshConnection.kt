@@ -119,20 +119,26 @@ class SshConnection private constructor(val profile: HostProfile, private val ch
         } catch (e: Throwable) { session.close(); throw e }
     }
 
-    suspend fun terminal(cols: Int = 80, rows: Int = 24, cwd: String = ""): RemoteTerminal = withContext(Dispatchers.IO) {
-        val session = client.startSession()
+    suspend fun terminal(cols: Int = 80, rows: Int = 24, cwd: String = ""): RemoteTerminal {
+        var session: Session? = null
         try {
-            session.allocatePTY("xterm-256color", cols, rows, 0, 0, emptyMap())
-            RemoteTerminal(session.startShell()).also { if (cwd.isNotBlank()) it.write("cd -- ${shellQuote(cwd)}\r".toByteArray()) }
-        } catch (e: Throwable) { session.close(); throw e }
+            return withContext(Dispatchers.IO) {
+                val opened = client.startSession().also { session = it }
+                opened.allocatePTY("xterm-256color", cols, rows, 0, 0, emptyMap())
+                RemoteTerminal(opened, opened.startShell()).also { if (cwd.isNotBlank()) it.write("cd -- ${shellQuote(cwd)}\r".toByteArray()) }
+            }
+        } catch (e: Throwable) {
+            withContext(NonCancellable + Dispatchers.IO) { runCatching { session?.close() } }
+            throw e
+        }
     }
 
     override fun close() { chain.asReversed().forEach { runCatching { it.close() } } }
 }
 
-class RemoteTerminal(private val shell: Session.Shell) : Closeable {
+class RemoteTerminal(private val session: Session, private val shell: Session.Shell) : Closeable {
     val input get() = shell.inputStream
     @Synchronized fun write(bytes: ByteArray) { shell.outputStream.write(bytes); shell.outputStream.flush() }
     fun resize(cols: Int, rows: Int) = shell.changeWindowDimensions(cols.coerceAtLeast(2), rows.coerceAtLeast(2), 0, 0)
-    override fun close() = shell.close()
+    override fun close() { try { shell.close() } finally { session.close() } }
 }
