@@ -5,7 +5,10 @@ on:
 permissions:
   contents: write
 jobs:
+  verify:
+    uses: ./.github/workflows/check.yml
   release:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
