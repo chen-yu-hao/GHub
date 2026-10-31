@@ -137,9 +137,12 @@ import dev.remotegpt.client.*
                     if (expanded) tr(R.string.ui_collapse) else tr(R.string.ui_expand), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (steps.isNotEmpty()) OutputEventRail(steps)
-            if (expanded) steps.forEach { item ->
-                key(item.identityKey) {
-                    TimelineCard(item, preview, imagePreviews = imagePreviews, imageLoading = imageLoading, onLoadImage = onLoadImage)
+            if (expanded) Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                steps.forEach { item ->
+                    key(item.identityKey) {
+                        TimelineCard(item, preview, imagePreviews = imagePreviews, imageLoading = imageLoading, onLoadImage = onLoadImage)
+                    }
                 }
             }
         }

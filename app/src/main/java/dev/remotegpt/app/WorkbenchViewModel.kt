@@ -65,6 +65,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     private val uploads = mutableMapOf<String, Job>()
     private val persistence = mutableMapOf<String, Job>()
     private val imageLoads = mutableMapOf<String, Job>()
+    private val terminalOpenings = mutableMapOf<Pair<String, String>, Job>()
     private val editorDrafts = EditorDraftStore(File(app.filesDir, "editor-drafts"))
     private val imageCache = RemoteImageCache(File(app.cacheDir, "remote-images"))
     private var imageGeneration = 0
@@ -453,6 +454,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun releaseConnection(host: String) {
+        terminalOpenings.keys.filter { it.first == host }.toList().forEach { terminalOpenings.remove(it)?.cancel() }
         ui(host).terminals.forEach { it.session.finishIfRunning() }
         imageLoads.keys.filter { it.startsWith("$host:") }.toList().forEach { imageLoads.remove(it)?.cancel() }
         connectionEpochs[host] = UUID.randomUUID().toString()
@@ -463,7 +465,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         runtimes[host]?.let { retireRuntime(host, it) }
         fileRuntimes.remove(host)?.let { runtime -> viewModelScope.launch(Dispatchers.IO) { runCatching { runtime.ssh.close() } } }
         update(host) { it.copy(connection = ConnectionStatus.OFFLINE, approvals = emptyList(), error = null, reconnectAttempt = 0,
-            terminals = emptyList(), selectedTerminal = null, projectTerminals = emptyMap(), imageLoading = emptySet()) }
+            terminals = emptyList(), selectedTerminal = null, projectTerminals = emptyMap(), openingTerminalProjects = emptySet(), imageLoading = emptySet()) }
     }
 
     private fun reconnectOffline(immediate: Boolean = false) {
@@ -1513,12 +1515,40 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     fun previewImage(path: String) = requestImage(path, show = true)
     fun dismissImage() { mutable.update { it.copy(previewImage = null) } }
 
-    fun newTerminal() = performFile { host, rt ->
-        val project = ui(host).selectedProject ?: return@performFile
+    fun ensureTerminal() {
+        val ws = state.value.workspace
+        if (ws.connection == ConnectionStatus.ONLINE && ws.terminals.none { it.projectPath == ws.selectedProject }) newTerminal()
+    }
+
+    fun newTerminal(): Job? {
+        val host = state.value.activeHost ?: return null
+        val project = ui(host).selectedProject ?: return null
+        val key = host to project
+        terminalOpenings[key]?.let { return it }
+        val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
+            try {
+                val rt = waitForFileRuntime(host) ?: error(tr(R.string.ui_terminal_connection_unavailable))
+                openTerminal(host, project, rt)
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { message(errorText(e)) }
+            finally {
+                if (terminalOpenings[key] === currentCoroutineContext()[Job]) {
+                    terminalOpenings.remove(key)
+                    update(host) { it.copy(openingTerminalProjects = it.openingTerminalProjects - project) }
+                }
+            }
+        }
+        terminalOpenings[key] = job
+        update(host) { it.copy(openingTerminalProjects = it.openingTerminalProjects + project) }
+        job.start()
+        return job
+    }
+
+    private suspend fun openTerminal(host: String, project: String, rt: FileRuntime) {
         val remote = rt.ssh.terminal(cwd = project.ifBlank { ui(host).filePath })
         if (fileRuntimes[host] !== rt) {
             withContext(NonCancellable + Dispatchers.IO) { runCatching { remote.close() } }
-            return@performFile
+            return
         }
         val writes = Channel<ByteArray>(128)
         val sizes = Channel<Pair<Int, Int>>(Channel.CONFLATED)

@@ -202,7 +202,7 @@ import java.util.UUID
                                 runCatching { camera.launch(uri) }.onFailure { vm.message(tr(R.string.ui_no_camera_app_found_choose_an_image)) }
                             }, onVoice = { if (listening) speech.cancel() else microphone.launch(Manifest.permission.RECORD_AUDIO) }, optionsOpen = showConversationOptions, onOptionsChange = { showConversationOptions = it }, onBottomControls = { bottomControls = it })
                         WorkspaceTab.FILES -> FilesScreen(state, vm, onWorkspace = { showWorkspace = true }, snackbar = snackbars) { file -> pendingDownload = file.path; saveFile.launch(file.name) }
-                        WorkspaceTab.TERMINAL -> TerminalsScreen(state, vm, onWorkspace = { showWorkspace = true }, onBottomControls = { bottomControls = it })
+                        WorkspaceTab.TERMINAL -> TerminalsScreen(state, vm, onBottomControls = { bottomControls = it })
                     }
                 }
             }

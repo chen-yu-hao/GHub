@@ -104,10 +104,17 @@ class WorkbenchDeviceTest {
             compose.waitUntil(20_000) { vm.state.value.workspace.editor != null }
             compose.runOnIdle { vm.editorText("手机编辑成功"); vm.saveFile() }
             compose.waitUntil(20_000) { vm.state.value.workspace.editor?.text == "手机编辑成功" }
-            compose.runOnIdle { vm.closeEditor(); vm.selectTab(WorkspaceTab.TERMINAL); vm.newTerminal() }
+            compose.runOnIdle { vm.closeEditor(); vm.selectTab(WorkspaceTab.TERMINAL) }
             compose.waitUntil(20_000) { vm.state.value.workspace.terminals.isNotEmpty() }
+            assertEquals(1, vm.state.value.workspace.terminals.size)
+            compose.onNodeWithText(tr(R.string.ui_workspace)).assertDoesNotExist()
             android.util.Log.i("WorkbenchCheck", "terminal opened")
             val terminal = vm.state.value.workspace.terminals.last().session
+            compose.runOnIdle { vm.selectTab(WorkspaceTab.SESSIONS) }
+            compose.waitForIdle()
+            compose.runOnIdle { vm.selectTab(WorkspaceTab.TERMINAL) }
+            compose.waitForIdle()
+            assertSame("Returning to the terminal must reuse its session", terminal, vm.state.value.workspace.terminals.single().session)
             compose.waitUntil(10_000) { terminal.getEmulator() != null }
             // Isolate interactive tests from the developer's login shell customizations.
             compose.runOnIdle { terminal.write("exec env -u PROMPT_COMMAND PS1='FIXTURE> ' /bin/bash --noprofile --norc -i\r") }
@@ -132,8 +139,17 @@ class WorkbenchDeviceTest {
             compose.waitUntil(15_000) { terminal.getEmulator()?.screen?.transcriptText?.contains("TMUX_DEVICE_OK") == true }
             compose.runOnIdle { terminal.write("\u0002d") }
             compose.waitUntil(15_000) { terminal.getEmulator()?.isAlternateBufferActive == false }
-            compose.runOnIdle { vm.closeTerminal(vm.state.value.workspace.terminals.last().id); vm.newTerminal() }
+            compose.runOnIdle { vm.closeTerminal(vm.state.value.workspace.terminals.last().id) }
+            compose.waitForIdle()
+            assertTrue("Closing the last terminal must leave it closed", vm.state.value.workspace.terminals.isEmpty())
+            assertTrue(vm.state.value.workspace.openingTerminalProjects.isEmpty())
+            compose.runOnIdle {
+                val opening = vm.newTerminal()
+                assertNotNull(opening)
+                assertSame("Repeated taps must share the pending terminal", opening, vm.newTerminal())
+            }
             compose.waitUntil(20_000) { vm.state.value.workspace.terminals.isNotEmpty() }
+            assertEquals(1, vm.state.value.workspace.terminals.size)
             val restoredTerminal = vm.state.value.workspace.terminals.last().session
             compose.runOnIdle { restoredTerminal.write("tmux -L $socketName attach-session -t probe\r") }
             compose.waitUntil(20_000) { restoredTerminal.getEmulator()?.screen?.transcriptText?.contains("TMUX_DEVICE_OK") == true }
@@ -143,7 +159,10 @@ class WorkbenchDeviceTest {
             android.util.Log.i("WorkbenchCheck", "vim and tmux reconnect passed")
             compose.activityRule.scenario.recreate()
             compose.waitUntil(20_000) { vm.state.value.workspace.terminals.isNotEmpty() }
-            compose.runOnIdle { assertSame(vm, app.workbench()) }
+            compose.runOnIdle {
+                assertSame(vm, app.workbench())
+                assertSame(restoredTerminal, vm.state.value.workspace.terminals.single().session)
+            }
             compose.runOnIdle { vm.selectTab(WorkspaceTab.SESSIONS) }
             assertEquals("保留的中文草稿", vm.state.value.draft.text)
             val image = File(app.cacheDir, "shared/device-image.png").apply { parentFile!!.mkdirs() }
@@ -166,8 +185,14 @@ class WorkbenchDeviceTest {
             assertTrue(vm.state.value.workspace.terminals.isEmpty())
             assertFalse(restoredTerminal.isRunning())
             assertEquals("可继续编辑的草稿", vm.state.value.draft.text)
+            compose.runOnIdle { vm.selectTab(WorkspaceTab.TERMINAL) }
+            compose.waitForIdle()
+            assertTrue(vm.state.value.workspace.terminals.isEmpty())
             compose.runOnIdle { vm.onForeground() }
             compose.waitUntil(60_000) { vm.state.value.workspace.connection == ConnectionStatus.ONLINE }
+            compose.waitUntil(20_000) { vm.state.value.workspace.terminals.isNotEmpty() }
+            assertEquals(1, vm.state.value.workspace.terminals.size)
+            compose.runOnIdle { vm.selectTab(WorkspaceTab.SESSIONS) }
             assertEquals("可继续编辑的草稿", vm.state.value.draft.text)
             android.util.Log.i("WorkbenchCheck", "background release and foreground reconnect passed")
             val screenshot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()

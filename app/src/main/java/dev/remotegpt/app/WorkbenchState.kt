@@ -49,6 +49,7 @@ data class HostWorkspace(
     val filePath: String = "", val files: List<RemoteFile> = emptyList(), val loadingFiles: Boolean = false,
     val editor: TextFile? = null, val editorText: String = "", val fileConflict: Boolean = false,
     val terminals: List<TerminalTab> = emptyList(), val selectedTerminal: String? = null,
+    val openingTerminalProjects: Set<String> = emptySet(),
     val loadingHistory: Boolean = false,
 )
 

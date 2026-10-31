@@ -328,6 +328,8 @@
     <string name="ui_open_remote_terminal" formatted="false">打开远端终端</string>
     <string name="ui_supports_vim_tmux_and_common_terminal_programs" formatted="false">支持 vim、tmux 和常见终端程序。使用远端 tmux 可保留断线前的工作。</string>
     <string name="ui_new_terminal" formatted="false">新终端</string>
+    <string name="ui_opening_terminal" formatted="false">正在打开终端…</string>
+    <string name="ui_terminal_connection_unavailable" formatted="false">无法连接终端，请重新连接后重试。</string>
     <string name="ui_ssh_terminal" formatted="false">SSH 交互终端</string>
     <string name="ui_close_330">关闭 %1$s</string>
     <string name="ui_paste" formatted="false">粘贴</string>

@@ -28,10 +28,14 @@ import com.termux.view.TerminalView
 import dev.remotegpt.app.*
 import dev.remotegpt.terminal.ViewCallbacks
 
-@Composable fun TerminalsScreen(state: WorkbenchState, vm: WorkbenchViewModel, onWorkspace: () -> Unit, onBottomControls: (Int) -> Unit = {}) {
+@Composable fun TerminalsScreen(state: WorkbenchState, vm: WorkbenchViewModel, onBottomControls: (Int) -> Unit = {}) {
     val ws = state.workspace
     val terminals = ws.terminals.filter { it.projectPath == ws.selectedProject }
     val selected = terminals.firstOrNull { it.id == ws.selectedTerminal } ?: terminals.firstOrNull()
+    val opening = ws.selectedProject in ws.openingTerminalProjects
+    // Entering an empty terminal page opens one session. Closing the last tab
+    // deliberately leaves it closed until the user reopens the page or adds one.
+    LaunchedEffect(state.activeHost, ws.selectedProject, ws.connection) { vm.ensureTerminal() }
     var closing by remember { mutableStateOf<String?>(null) }
     var ctrl by remember { mutableStateOf(false) }
     var alt by remember { mutableStateOf(false) }
@@ -46,9 +50,17 @@ import dev.remotegpt.terminal.ViewCallbacks
     var view by remember { mutableStateOf<TerminalView?>(null) }
     Column(Modifier.fillMaxSize()) {
         if (selected == null) {
-            Box(Modifier.weight(1f)) { EmptyPanel(WorkbenchIcons.Terminal, tr(R.string.ui_open_remote_terminal), tr(R.string.ui_supports_vim_tmux_and_common_terminal_programs)) }
-            Box(Modifier.onSizeChanged { onBottomControls(it.height) }.imePadding()) {
-                ReachableActions(onWorkspace, tr(R.string.ui_new_terminal), { vm.newTerminal() }, enabled = ws.connection == ConnectionStatus.ONLINE)
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                if (opening) Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    CircularProgressIndicator()
+                    Text(tr(R.string.ui_opening_terminal), style = MaterialTheme.typography.bodyMedium)
+                } else EmptyPanel(WorkbenchIcons.Terminal, tr(R.string.ui_open_remote_terminal), tr(R.string.ui_supports_vim_tmux_and_common_terminal_programs))
+            }
+            Box(Modifier.fillMaxWidth().onSizeChanged { onBottomControls(it.height) }.imePadding().padding(16.dp), contentAlignment = Alignment.Center) {
+                Button(onClick = { vm.newTerminal() }, enabled = ws.connection == ConnectionStatus.ONLINE && !opening, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(tr(if (opening) R.string.ui_opening_terminal else R.string.ui_new_terminal))
+                }
             }
         }
         else {
@@ -101,7 +113,6 @@ import dev.remotegpt.terminal.ViewCallbacks
                 item { OutlinedButton(onClick = { haptic(false); selected.session.onPasteTextFromClipboard() }, modifier = Modifier.heightIn(min = 48.dp)) { Text(tr(R.string.ui_paste)) } }
             }
             FlowRow(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = { haptic(false); onWorkspace() }, modifier = Modifier.heightIn(min = 48.dp)) { Icon(WorkbenchIcons.Menu, null, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text(tr(R.string.ui_workspace)) }
                 IconButton(onClick = {
                     haptic(false)
                     view?.let { terminal ->
@@ -109,7 +120,7 @@ import dev.remotegpt.terminal.ViewCallbacks
                         (context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(terminal, InputMethodManager.SHOW_IMPLICIT)
                     }
                 }, modifier = Modifier.size(48.dp)) { Icon(WorkbenchIcons.Keyboard, tr(R.string.ui_show_keyboard), Modifier.size(20.dp)) }
-                IconButton(onClick = { haptic(false); vm.newTerminal() }, enabled = ws.connection == ConnectionStatus.ONLINE, modifier = Modifier.size(48.dp)) { Icon(WorkbenchIcons.Add, tr(R.string.ui_new_terminal_session)) }
+                IconButton(onClick = { haptic(false); vm.newTerminal() }, enabled = ws.connection == ConnectionStatus.ONLINE && !opening, modifier = Modifier.size(48.dp)) { Icon(WorkbenchIcons.Add, tr(R.string.ui_new_terminal_session)) }
                 IconButton(onClick = { haptic(false); fontSize = (fontSize - 1).coerceAtLeast(10f) }, modifier = Modifier.size(48.dp)) { Icon(WorkbenchIcons.TextDecrease, tr(R.string.ui_decrease_terminal_text_size)) }
                 IconButton(onClick = { haptic(false); fontSize = (fontSize + 1).coerceAtMost(28f) }, modifier = Modifier.size(48.dp)) { Icon(WorkbenchIcons.TextIncrease, tr(R.string.ui_increase_terminal_text_size)) }
             }
