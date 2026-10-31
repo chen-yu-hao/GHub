@@ -47,8 +47,9 @@ LogLevel ERROR
                   "releaseSshUser": getpass.getuser(), "releaseFingerprint": fingerprint, "releaseRoot": str(root),
                   "releaseEd25519": base64.b64encode((root / "ed25519").read_bytes()).decode(),
                   "releaseRsa": base64.b64encode((root / "rsa").read_bytes()).decode()}
-        subprocess.run(["./gradlew", "-PtestBuildType=release", ":app:connectedReleaseAndroidTest"] +
-                       [f"-Pandroid.testInstrumentationRunnerArguments.{key}={value}" for key, value in values.items()], check=True)
+        result = subprocess.run(["./gradlew", "-PtestBuildType=release", ":app:connectedReleaseAndroidTest"] +
+                                [f"-Pandroid.testInstrumentationRunnerArguments.{key}={value}" for key, value in values.items()])
+        if result.returncode: raise SystemExit("Release device check failed; see Gradle report")
     finally:
         process.terminate()
         try: process.wait(timeout=10)

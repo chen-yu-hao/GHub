@@ -16,6 +16,7 @@ android {
         versionCode = 36
         versionName = "0.1.35"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testProguardFiles("proguard-test-rules.pro")
     }
     testBuildType = providers.gradleProperty("testBuildType").orElse("debug").get()
     if (testBuildType == "release") sourceSets["androidTest"].java.setSrcDirs(listOf("src/releaseTest/java"))
