@@ -399,9 +399,10 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
                         record("connect_failed", "epoch=${epoch} stage=${stage} reason=${connectionDiagnostic(e)} retry=${!permanent}")
                     }
                 }
+                val closeSsh = ssh == null || fileRuntimes[host]?.ssh !== ssh
                 withContext(NonCancellable + Dispatchers.IO) {
-                    rpc?.close()
-                    if (ssh == null || fileRuntimes[host]?.ssh !== ssh) runCatching { ssh?.close() }
+                    runCatching { rpc?.close() }
+                    if (closeSsh) runCatching { ssh?.close() }
                 }
                 if (e is CancellationException && e !is TimeoutCancellationException) throw e
             } finally {

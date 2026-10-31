@@ -1,7 +1,7 @@
 package dev.remotegpt.app
 
 import android.content.pm.ApplicationInfo
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import android.content.Intent
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.remotegpt.client.*
 import kotlinx.coroutines.*
@@ -12,12 +12,17 @@ import java.util.Base64
 
 /** Run against the actual non-debuggable, R8-optimized release build. */
 class ReleaseRuntimeDeviceTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
     @Test fun optimizedReleaseStartsAndUsesEncryptedKeysSftpAndPty() = runBlocking {
         val args = InstrumentationRegistry.getArguments()
         Assume.assumeTrue("Requires isolated OpenSSH fixture", args.containsKey("releaseSshPort"))
-        assertEquals(0, compose.activity.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE)
-        val endpoint = SshEndpoint("10.0.2.2", args.getString("releaseSshPort")!!.toInt(), args.getString("releaseSshUser")!!)
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        assertEquals(0, context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE)
+        val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        instrumentation.waitForIdleSync()
+        assertFalse(activity.isFinishing)
+        instrumentation.runOnMainSync { activity.finish() }
+        val endpoint = SshEndpoint(args.getString("releaseSshHost", "10.0.2.2"), args.getString("releaseSshPort")!!.toInt(), args.getString("releaseSshUser")!!)
         val profile = HostProfile(name = "R8 fixture", endpoint = endpoint)
         assertEquals(profile, wireJson.decodeFromString<HostProfile>(wireJson.encodeToString(profile)))
         for (name in listOf("releaseEd25519", "releaseRsa")) {

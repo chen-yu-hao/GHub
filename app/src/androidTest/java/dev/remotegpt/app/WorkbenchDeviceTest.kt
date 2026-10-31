@@ -39,8 +39,8 @@ class WorkbenchDeviceTest {
         Assume.assumeTrue("Pass fixture arguments to run real SSH device test", args.containsKey("sshPort"))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val key = File(context.filesDir, "device-test-key").readText()
-        val endpoint = SshEndpoint("10.0.2.2", args.getString("sshPort")!!.toInt(), args.getString("sshUser")!!)
-        val jumps = args.getString("jumpPorts")?.split(',')?.mapIndexed { i, port -> SshEndpoint(if (i == 0) "10.0.2.2" else "127.0.0.1", port.toInt(), endpoint.username) }.orEmpty()
+        val endpoint = SshEndpoint(args.getString("sshHost", "10.0.2.2"), args.getString("sshPort")!!.toInt(), args.getString("sshUser")!!)
+        val jumps = args.getString("jumpPorts")?.split(',')?.mapIndexed { i, port -> SshEndpoint(if (i == 0) args.getString("sshHost", "10.0.2.2") else "127.0.0.1", port.toInt(), endpoint.username) }.orEmpty()
         val profile = HostProfile(name = "device fixture", endpoint = if (jumps.isEmpty()) endpoint else endpoint.copy(host = "127.0.0.1"), jumps = jumps, codexPath = args.getString("codexPath")!!)
         val prompts = object : SshPrompts {
             override suspend fun credential(id: String) = Credential(privateKey = key, passphrase = args.getString("keyPassphrase").orEmpty())
@@ -62,7 +62,7 @@ class WorkbenchDeviceTest {
         val args = InstrumentationRegistry.getArguments()
         Assume.assumeTrue("Requires a disposable daemon fixture", args.containsKey("threadId"))
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as RemoteApplication
-        val endpoint = SshEndpoint("10.0.2.2", args.getString("sshPort")!!.toInt(), args.getString("sshUser")!!)
+        val endpoint = SshEndpoint(args.getString("sshHost", "10.0.2.2"), args.getString("sshPort")!!.toInt(), args.getString("sshUser")!!)
         val profile = HostProfile(name = "验证主机", endpoint = endpoint, codexPath = args.getString("codexPath")!!)
         val thread = args.getString("threadId")!!
         lateinit var vm: WorkbenchViewModel
@@ -151,6 +151,15 @@ class WorkbenchDeviceTest {
             compose.runOnIdle { vm.message(null); vm.draftText("可继续编辑的草稿") }
             compose.waitForIdle()
             android.util.Log.i("WorkbenchCheck", "image sent; activity recreation passed")
+            compose.runOnIdle { vm.setBackgroundKeepAlive(false); vm.onBackground() }
+            compose.waitUntil(40_000) { vm.state.value.workspace.connection == ConnectionStatus.OFFLINE }
+            assertTrue(vm.state.value.workspace.terminals.isEmpty())
+            assertFalse(restoredTerminal.isRunning())
+            assertEquals("可继续编辑的草稿", vm.state.value.draft.text)
+            compose.runOnIdle { vm.onForeground() }
+            compose.waitUntil(60_000) { vm.state.value.workspace.connection == ConnectionStatus.ONLINE }
+            assertEquals("可继续编辑的草稿", vm.state.value.draft.text)
+            android.util.Log.i("WorkbenchCheck", "background release and foreground reconnect passed")
             val screenshot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
             FileOutputStream(File(app.filesDir, "device-workbench.png")).use { screenshot.compress(Bitmap.CompressFormat.PNG, 100, it) }
             screenshot.recycle()

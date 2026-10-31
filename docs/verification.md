@@ -230,5 +230,7 @@ adb -s emulator-5554 shell am instrument -w -r \
 - 隔离 SSH/daemon fixture 的 6 项 JVM 集成检查通过：加密 Ed25519 与 PEM RSA、拒绝错误口令/主机指纹、两级跳板、SFTP 读写与冲突、PTY 命令与尺寸调整。
 - 本地 API 35 常规设备回归通过，覆盖服务器表单旋转恢复、SavedState 不含凭据、文件草稿重新加载、图片缩放按钮以及大字体/软键盘下的输入布局。需要真实 SSH/daemon 参数的原有测试在常规设备任务中跳过。
 - 发布流水线增加 API 36；API 29/35/36 均运行常规设备回归。另在 API 35 上用 `scripts/release_device_check.py` 验证真正非 debuggable、启用 R8/resource shrinking 的 Release 构建，使用临时 SSH 服务和临时加密 Ed25519/RSA 密钥实测启动、序列化、SFTP 和 PTY。测试构建使用测试签名；正式附件仍使用长期发布密钥，生产构建参数一致。
-- R8 保留 SSHJ 与 Bouncy Castle 的反射入口；仅精确忽略 Android 不提供且应用未启用的桌面 JNDI/LDAP/DANE/Kerberos 类型。没有使用全局 `-ignorewarnings`。
+- R8 保留 SSHJ 与 Bouncy Castle 的反射入口，以及独立测试 APK 共享的 Kotlin、协程、序列化、协议库和 tracing API；优先保证 Release 运行验证，未对这些库做激进裁剪。仅精确忽略 Android 不提供且应用未启用的桌面 JNDI/LDAP/DANE/Kerberos 类型。没有使用全局 `-ignorewarnings`。
 - 本版未完成真机长时间堆分析；缓存上限、资源释放回归与 Lint 不能证明应用完全不存在内存泄漏。活动/当前超大会话、未发送草稿和用户主动保留的终端仍可能占用较多内存。
+
+本地 API 35 精简 Release 实测通过：非 debuggable 启动、HostProfile 序列化往返、两种加密私钥登录、SFTP 上传/读取/保存、PTY 命令及调整尺寸。临时 SSH 服务通过 ADB reverse 连接，脚本要求可丢弃模拟器，并检查 XML 报告确实包含一个成功且未跳过的测试。

@@ -24,3 +24,15 @@
 -dontwarn org.ietf.jgss.GSSName
 -dontwarn org.ietf.jgss.MessageProp
 -dontwarn org.ietf.jgss.Oid
+
+# AndroidJUnitRunner shares this app dependency when testing the optimized APK.
+# Preserve the small tracing bridge so instrumentation can start after shrinking.
+-keep class androidx.tracing.Trace { *; }
+
+# Instrumentation and the app share these runtime APIs. Keeping their entry
+# points prevents R8 from erasing methods/classes used by the separate test APK.
+# App/UI code and unused resources remain optimized and shrunk.
+-keep class kotlin.** { *; }
+-keep class kotlinx.coroutines.** { *; }
+-keep class dev.remotegpt.client.** { *; }
+-keep class kotlinx.serialization.** { *; }

@@ -22,6 +22,8 @@ subprocess.run(base + ["install", "-r", "app/build/outputs/apk/androidTest/debug
 subprocess.run(base + ["shell", "pm", "clear", package], check=True)
 subprocess.run(base + ["shell", "cmd", "locale", "set-app-locales", package, "--user", "0", "--locales", "zh"], check=True)
 with servers() as fixture:
+    for port in fixture["ports"]:
+        subprocess.run(base + ["reverse", f"tcp:{port}", f"tcp:{port}"], check=True)
     Path(fixture["root"], "device-note.txt").write_text("device edit fixture")
     model = http.server.ThreadingHTTPServer(("127.0.0.1", 0), ModelFixture)
     threading.Thread(target=model.serve_forever, daemon=True).start()
@@ -44,7 +46,7 @@ with servers() as fixture:
         result = subprocess.run(base + ["shell", "am", "instrument", "-w", "-r"] + selection + [
             "-e", "jumpPorts", ",".join(map(str, fixture["ports"][:-1])), "-e", "keyPassphrase", "fixture-only-passphrase",
             "-e", "threadId", thread, "-e", "fixtureRoot", fixture["root"],
-            "-e", "sshPort", str(fixture["ports"][-1]), "-e", "sshUser", getpass.getuser(),
+            "-e", "sshHost", "127.0.0.1", "-e", "sshPort", str(fixture["ports"][-1]), "-e", "sshUser", getpass.getuser(),
             "-e", "fingerprint", fixture["fingerprint"], "-e", "codexPath", fixture["codex"],
             package + ".test/androidx.test.runner.AndroidJUnitRunner"], text=True, capture_output=True, timeout=300)
         print(result.stdout)
@@ -55,6 +57,8 @@ with servers() as fixture:
         if result.returncode or "FAILURES!!!" in result.stdout or "INSTRUMENTATION_FAILED" in result.stdout or "OK (" not in result.stdout:
             raise SystemExit("Device verification failed")
     finally:
+        for port in fixture["ports"]:
+            subprocess.run(base + ["reverse", "--remove", f"tcp:{port}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["tmux", "-L", "remote-gpt-device-" + str(fixture["ports"][-1]), "kill-server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
             try:
