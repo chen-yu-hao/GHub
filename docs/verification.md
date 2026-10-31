@@ -234,3 +234,7 @@ adb -s emulator-5554 shell am instrument -w -r \
 - 本版未完成真机长时间堆分析；缓存上限、资源释放回归与 Lint 不能证明应用完全不存在内存泄漏。活动/当前超大会话、未发送草稿和用户主动保留的终端仍可能占用较多内存。
 
 本地 API 35 精简 Release 实测通过：非 debuggable 启动、HostProfile 序列化往返、两种加密私钥登录、SFTP 上传/读取/保存、PTY 命令及调整尺寸。临时 SSH 服务通过 ADB reverse 连接，脚本要求可丢弃模拟器，并检查 XML 报告确实包含一个成功且未跳过的测试。
+
+本地隔离 daemon 的完整设备工作流通过：审批重连/提交、SFTP 编辑、中文终端输入、Vim、tmux 断开/重新接入、Activity 重建、图片上传/发送，以及关闭后台保持后 30 秒释放终端/连接并在回前台自动恢复，未发送草稿保留。测试使用干净 Bash，并在 Vim 退出后复位 readline、等待新提示符，避免将终端查询应答留在后续输入中。
+
+0.1.35 正式签名构建的 Release JVM 测试和 Lint 通过（0 errors，29 warnings）；证书指纹与 0.1.34 一致，`debuggable=false`，ZIP 16 KiB 对齐通过。云端完整检查见 [run 41220352273](https://github.com/iawnix/GHub/actions/runs/41220352273)。

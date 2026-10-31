@@ -94,7 +94,7 @@ class WorkbenchDeviceTest {
             assertEquals(first.id, replay.id)
             assertNotEquals(first.epoch, replay.epoch)
             android.util.Log.i("WorkbenchCheck", "approving via UI")
-            compose.onNodeWithText("允许一次").performScrollTo().performClick()
+            compose.onNodeWithText(tr(R.string.ui_allow_once)).performScrollTo().performClick()
             compose.waitUntil(60_000) { vm.state.value.conversation?.items?.any { it.text.contains("Remote GPT approval probe completed.") } == true }
             compose.waitUntil { vm.state.value.workspace.approvals.isEmpty() }
             android.util.Log.i("WorkbenchCheck", "turn completed")
@@ -109,12 +109,22 @@ class WorkbenchDeviceTest {
             android.util.Log.i("WorkbenchCheck", "terminal opened")
             val terminal = vm.state.value.workspace.terminals.last().session
             compose.waitUntil(10_000) { terminal.getEmulator() != null }
+            // Isolate interactive tests from the developer's login shell customizations.
+            compose.runOnIdle { terminal.write("exec env -u PROMPT_COMMAND PS1='FIXTURE> ' /bin/bash --noprofile --norc -i\r") }
+            compose.waitUntil(10_000) { terminal.getEmulator()?.screen?.transcriptText?.contains("\nFIXTURE>") == true }
             compose.runOnIdle { terminal.write("printf '手机%s OK\\n' '终端'\r") }
             compose.waitUntil(15_000) { terminal.getEmulator()?.screen?.transcriptText?.contains("手机终端 OK") == true }
-            compose.runOnIdle { terminal.write("vim -Nu NONE -i NONE " + shellQuote(args.getString("fixtureRoot") + "/device-note.txt") + "\r") }
+            compose.runOnIdle { terminal.write("vim -Nu NONE -i NONE " + shellQuote(args.getString("fixtureRoot") + "/device-note.txt") + "; printf 'VIM_%s_READY\\n' EXITED\r") }
             compose.waitUntil(20_000) { terminal.getEmulator()?.isAlternateBufferActive == true }
             compose.runOnIdle { terminal.write("\u001b:q!\r") }
-            compose.waitUntil(15_000) { terminal.getEmulator()?.isAlternateBufferActive == false }
+            compose.waitUntil(15_000) { terminal.getEmulator()?.isAlternateBufferActive == false &&
+                terminal.getEmulator()?.screen?.transcriptText?.contains("VIM_EXITED_READY") == true }
+            assertTrue("Terminal must remain writable after Vim exits", terminal.isRunning())
+            // Vim is gone, but late terminal-query replies may leave readline editing state.
+            // Reset that state and wait for a fresh prompt before typing the next command.
+            val promptsBefore = terminal.getEmulator()!!.screen.transcriptText.split("FIXTURE>").size
+            compose.runOnIdle { terminal.write("\u0003") }
+            compose.waitUntil(10_000) { terminal.getEmulator()!!.screen.transcriptText.split("FIXTURE>").size > promptsBefore }
             val socketName = "remote-gpt-device-" + args.getString("sshPort")
             compose.runOnIdle { terminal.write("tmux -L $socketName -f /dev/null new-session -s probe\r") }
             compose.waitUntil(20_000) { terminal.getEmulator()?.isAlternateBufferActive == true }
@@ -145,7 +155,7 @@ class WorkbenchDeviceTest {
             compose.runOnIdle { vm.message(null) }
             compose.waitForIdle()
             android.util.Log.i("WorkbenchCheck", "sending image; connection=${vm.state.value.workspace.connection}; draft=${vm.state.value.draft.delivery}; archived=${vm.state.value.thread?.archived}")
-            compose.onNodeWithContentDescription("发送消息").assertIsEnabled().performClick()
+            compose.onNodeWithContentDescription(tr(R.string.ui_send_message)).assertIsEnabled().performClick()
             compose.waitUntil(30_000) { vm.state.value.draft.text.isEmpty() && vm.state.value.draft.attachments.isEmpty() }
             compose.waitUntil(30_000) { vm.state.value.conversation?.items?.any { it.kind == "userMessage" && it.imagePaths.isNotEmpty() } == true }
             compose.runOnIdle { vm.message(null); vm.draftText("可继续编辑的草稿") }
