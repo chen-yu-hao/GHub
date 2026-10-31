@@ -42,7 +42,8 @@ class WorkbenchInteractionDeviceTest {
                 Box(Modifier.padding(padding).height(360.dp)) { ProjectsScreen(ws, {}, {}, {}) }
             }
         } }
-        compose.onNodeWithText("Project 5").performScrollTo().performClick()
+        compose.onNode(hasScrollToIndexAction()).performScrollToKey("project:/project/5")
+        compose.onNodeWithText("Project 5").performClick()
         compose.onNodeWithText("Session Project 5").assertIsDisplayed()
         val header = compose.onNodeWithText("Project 5").fetchSemanticsNode().boundsInRoot
         val session = compose.onNodeWithText("Session Project 5").fetchSemanticsNode().boundsInRoot
@@ -73,12 +74,14 @@ class WorkbenchInteractionDeviceTest {
         val input = compose.onNodeWithContentDescription(context.getString(R.string.ui_message_input))
         input.performTextInput("Long message 中文测试\n".repeat(30))
         val inputRect = input.fetchSemanticsNode().boundsInRoot
-        val actions = listOf(R.string.ui_add_attachment, R.string.ui_message_options, R.string.ui_voice_input, R.string.ui_send_message)
-            .map { compose.onNodeWithContentDescription(context.getString(it)).assertIsDisplayed().fetchSemanticsNode().boundsInRoot }
+        val optionsDescription = context.getString(R.string.ui_message_options_current, "m", context.getString(R.string.ui_default))
+        val actions = listOf(context.getString(R.string.ui_add_attachment), optionsDescription,
+            context.getString(R.string.ui_voice_input), context.getString(R.string.ui_send_message))
+            .map { compose.onNodeWithContentDescription(it).assertIsDisplayed().fetchSemanticsNode().boundsInRoot }
         assertTrue(actions.all { it.top >= inputRect.bottom })
         assertTrue(actions.all { kotlin.math.abs(it.center.y - actions.first().center.y) < 2f })
         assertTrue(actions.zipWithNext().all { (left, right) -> left.right <= right.left + 1f })
-        compose.onNodeWithContentDescription(context.getString(R.string.ui_message_options)).performClick()
+        compose.onNodeWithContentDescription(optionsDescription).performClick()
         compose.onNodeWithText(context.getString(R.string.ui_choose_model)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.ui_reasoning_level)).assertIsDisplayed()
     }

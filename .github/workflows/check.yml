@@ -33,6 +33,7 @@ jobs:
   device:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         api: [29, 35]
     steps:
@@ -60,3 +61,10 @@ jobs:
           arch: x86_64
           target: google_apis
           script: ./gradlew :app:connectedDebugAndroidTest
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: device-reports-api-${{ matrix.api }}
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/

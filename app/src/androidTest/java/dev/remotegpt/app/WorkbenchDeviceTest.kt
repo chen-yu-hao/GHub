@@ -22,15 +22,17 @@ class WorkbenchDeviceTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
     @Test fun emptyWorkspaceOffersHostSetupAndAccessibleEditor() {
-        compose.onNodeWithText("打开设置").assertIsDisplayed().performClick()
-        compose.onAllNodesWithText("服务器").onLast().assertIsDisplayed().performClick()
-        compose.onNodeWithText("添加服务器").assertIsDisplayed().performClick()
-        compose.onNodeWithText("连接名称").assertIsDisplayed()
-        compose.onNodeWithText("主机地址").assertIsDisplayed()
-        compose.onNodeWithText("用户名").assertIsDisplayed()
-        compose.onNodeWithText("保存").assertIsNotEnabled()
-        compose.onNodeWithContentDescription("关闭配置").performClick()
-        compose.onNodeWithText("连接你的开发机").assertIsDisplayed()
+        compose.onNodeWithText(tr(R.string.ui_open_settings)).assertIsDisplayed().performClick()
+        compose.onAllNodesWithText(tr(R.string.ui_servers)).onLast().assertIsDisplayed().performClick()
+        compose.onNodeWithText(tr(R.string.ui_add_server)).assertIsDisplayed().performClick()
+        compose.onNodeWithText(tr(R.string.ui_connection_name)).assertIsDisplayed()
+        compose.onNodeWithText(tr(R.string.ui_host_address)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(tr(R.string.ui_username)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(tr(R.string.ui_save_connection)).assertIsNotEnabled()
+        compose.onNodeWithContentDescription(tr(R.string.ui_back_to_servers)).performClick()
+        compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()
+        compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()
+        compose.onNodeWithText(tr(R.string.ui_connect_your_development_machine)).assertIsDisplayed()
     }
 
     @Test fun androidSshAndProxyReadExistingDaemon() = runBlocking {

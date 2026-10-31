@@ -70,11 +70,13 @@ class ConversationLayoutDeviceTest {
                 modelOptions = options, effort = draft.effort, onEffort = { draft = draft.copy(effort = it) })
         } }
         compose.onNodeWithContentDescription(context.getString(R.string.ui_voice_input)).assertIsDisplayed()
-        compose.onNodeWithContentDescription(context.getString(R.string.ui_message_options)).performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.ui_message_options_current,
+            "Main model", context.getString(R.string.ui_default))).performClick()
         compose.onNodeWithText(context.getString(R.string.ui_choose_model)).performClick()
         compose.onNodeWithText("Fast model").performClick()
         compose.runOnIdle { assertEquals("fast", draft.model) }
-        compose.onNodeWithContentDescription(context.getString(R.string.ui_message_options)).performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.ui_message_options_current,
+            "Fast model", context.getString(R.string.ui_default))).performClick()
         compose.onNodeWithText(context.getString(R.string.ui_reasoning_level)).performClick()
         compose.onNodeWithText(context.getString(R.string.ui_high)).performClick()
         compose.runOnIdle { assertEquals("high", draft.effort) }
