@@ -48,7 +48,7 @@ class WorkbenchInteractionDeviceTest {
         val header = compose.onNodeWithText("Project 5").fetchSemanticsNode().boundsInRoot
         val session = compose.onNodeWithText("Session Project 5").fetchSemanticsNode().boundsInRoot
         assertTrue(header.top > compose.onNodeWithText("Host").fetchSemanticsNode().boundsInRoot.bottom)
-        assertTrue(session.top > header.bottom)
+        assertTrue("Session must follow the project row: header=$header, session=$session", session.top >= header.bottom)
         compose.mainClock.autoAdvance = false
         compose.onNodeWithText("Project 5").performClick()
         compose.mainClock.advanceTimeBy(32)
@@ -73,14 +73,19 @@ class WorkbenchInteractionDeviceTest {
         } }
         val input = compose.onNodeWithContentDescription(context.getString(R.string.ui_message_input))
         input.performTextInput("Long message 中文测试\n".repeat(30))
-        val inputRect = input.fetchSemanticsNode().boundsInRoot
+        val inputNode = input.fetchSemanticsNode()
         val optionsDescription = context.getString(R.string.ui_message_options_current, "m", context.getString(R.string.ui_default))
-        val actions = listOf(context.getString(R.string.ui_add_attachment), optionsDescription,
+        val actionNodes = listOf(context.getString(R.string.ui_add_attachment), optionsDescription,
             context.getString(R.string.ui_voice_input), context.getString(R.string.ui_send_message))
-            .map { compose.onNodeWithContentDescription(it).assertIsDisplayed().fetchSemanticsNode().boundsInRoot }
-        assertTrue(actions.all { it.top >= inputRect.bottom })
-        assertTrue(actions.all { kotlin.math.abs(it.center.y - actions.first().center.y) < 2f })
-        assertTrue(actions.zipWithNext().all { (left, right) -> left.right <= right.left + 1f })
+            .map { compose.onNodeWithContentDescription(it).assertIsDisplayed().fetchSemanticsNode() }
+        // Read all coordinates in one UI frame; IME insets can move the dock between test queries.
+        compose.runOnIdle {
+            val inputRect = inputNode.boundsInRoot
+            val actions = actionNodes.map { it.boundsInRoot }
+            assertTrue("Actions must stay below input: input=$inputRect, actions=$actions", actions.all { it.top >= inputRect.bottom })
+            assertTrue("Actions must share a row: $actions", actions.all { kotlin.math.abs(it.center.y - actions.first().center.y) < 2f })
+            assertTrue("Actions must not overlap: $actions", actions.zipWithNext().all { (left, right) -> left.right <= right.left + 1f })
+        }
         compose.onNodeWithContentDescription(optionsDescription).performClick()
         compose.onNodeWithText(context.getString(R.string.ui_choose_model)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.ui_reasoning_level)).assertIsDisplayed()
