@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GHub · Logo</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; color: #1c293d; background: #f3f5f9; font-family: "Red Hat Display", "Noto Sans CJK SC", sans-serif; }
+  main { max-width: 1200px; padding: 44px 64px 48px; margin: auto; }
+  header { display: flex; justify-content: space-between; color: #647087; font-size: 14px; letter-spacing: .06em; }
+  .hero { display: flex; align-items: center; gap: 72px; padding: 48px 60px 52px; }
+  .icon { width: var(--size, 80px); height: var(--size, 80px); border-radius: 25%; overflow: hidden; flex-shrink: 0; background: #1c293d; }
+  .icon svg { display: block; width: 100%; height: 100%; }
+  .hero .icon { --size: 264px; }
+  h1 { margin: 0 0 8px; font-size: 96px; line-height: 1.1; font-weight: 600; letter-spacing: -.045em; }
+  .tagline { color: #647087; font-size: 20px; letter-spacing: .06em; margin: 0; }
+  .detail { display: flex; align-items: center; gap: 10px; margin-top: 32px; color: #647087; font-size: 14px; }
+  .swatch { width: 14px; height: 14px; border-radius: 50%; background: #1c293d; }
+  .swatch.blue { background: #9bbdf3; margin-left: 12px; }
+  .variants { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .tile { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; min-height: 200px; border-radius: 20px; background: #e6ecf5; }
+  .tile.dark { color: #e7edf8; background: #151e2d; }
+  .tile.themed { background: #e5ebe3; }
+  .circle { border-radius: 50%; }
+  .themed .icon { background: #d0ddcb; }
+  .themed .icon .background { fill: #d0ddcb; }
+  .themed .icon .monogram { stroke: #364b35; }
+  .themed .icon .hub { fill: #364b35; }
+  .label { font-size: 13px; }
+  footer { display: flex; align-items: center; justify-content: space-between; padding-top: 26px; color: #647087; font-size: 13px; }
+  .small-sizes { display: flex; align-items: center; gap: 18px; }
+  @media (max-width: 760px) { main { padding: 28px 24px; } .hero { flex-direction: column; gap: 28px; padding: 40px 0; text-align: center; } h1 { font-size: 72px; } .detail { justify-content: center; } .variants { grid-template-columns: 1fr; } }
+</style>
+<main>
+  <header><span>GHub</span><span>LOGO / 01</span></header>
+  <section class="hero">
+    <div class="icon" data-mark aria-label="GHub 应用图标"></div>
+    <div>
+      <h1>GHub</h1>
+      <p class="tagline">远程开发，随手接续。</p>
+      <div class="detail"><span class="swatch"></span>深蓝<span class="swatch blue"></span>连接蓝</div>
+    </div>
+  </section>
+  <section class="variants" aria-label="图标适配预览">
+    <div class="tile"><div class="icon" data-mark></div><span class="label">GHub</span></div>
+    <div class="tile dark"><div class="icon circle" data-mark></div><span class="label">GHub</span></div>
+    <div class="tile themed"><div class="icon" data-mark></div><span class="label">GHub</span></div>
+  </section>
+  <footer><span>G 字形 × 连接节点</span><div class="small-sizes"><span>24 / 36 / 48</span><div class="icon" style="--size:24px" data-mark></div><div class="icon" style="--size:36px" data-mark></div><div class="icon" style="--size:48px" data-mark></div></div></footer>
+</main>
+<template id="brand-mark">
+<!-- brand-mark:start -->
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-labelledby="title description">
+  <title id="title">GHub</title>
+  <desc id="description">A rounded G connection path with a blue hub on a deep blue background.</desc>
+  <path id="background" fill="#1C293D" d="M0 0H108V108H0Z" />
+  <path id="monogram" fill="none" stroke="#F5F7FB" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" d="M73 37C68 32 62 29 54 29H51C38 29 29 39 29 52V56C29 69 38 79 51 79H57C69 79 78 70 78 58V54H55" />
+  <path id="hub" fill="#9BBDF3" d="M60.75 54A5.75 5.75 0 1 1 49.25 54A5.75 5.75 0 1 1 60.75 54Z" />
+</svg>
+<!-- brand-mark:end -->
+</template>
+<script>
+  // The generator embeds the source, so this preview also opens directly offline.
+  document.querySelectorAll('[data-mark]').forEach(target => {
+      const svg = document.querySelector('#brand-mark').content.querySelector('svg').cloneNode(true);
+      svg.setAttribute('viewBox', '18 18 72 72');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.removeAttribute('aria-labelledby');
+      svg.querySelectorAll('[id]').forEach(element => { element.setAttribute('class', element.id); element.removeAttribute('id'); });
+      target.appendChild(svg);
+  });
+</script>
+</html>

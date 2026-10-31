@@ -1,0 +1,46 @@
+package dev.remotegpt.app.data
+
+import dev.remotegpt.client.Conversation
+import dev.remotegpt.client.wireJson
+import kotlinx.serialization.encodeToString
+
+private const val CHUNK_PREFIX = "remote-gpt-cache-v2\n"
+
+/** Split serialized data, not Markdown. Cutting the start of a reply can remove
+ * fences/table headers and makes the cached answer render differently after reopening. */
+internal fun encodeConversationCache(conversation: Conversation): List<String> {
+    val compact = conversation.copy(items = conversation.items.takeLast(64).map { item ->
+        item.copy(
+            text = if (item.kind in setOf("agentMessage", "userMessage")) item.text else item.text.takeLast(8_192),
+            imagePaths = item.imagePaths.take(8),
+            fileEdits = item.fileEdits.take(8).map { it.copy(diff = it.diff.takeLast(8_192)) },
+        )
+    })
+    val json = wireJson.encodeToString(compact)
+    return buildList {
+        var start = 0
+        while (start < json.length) {
+            var end = minOf(start + 32_768, json.length)
+            // SQLite stores UTF-8: never split a UTF-16 surrogate pair between rows.
+            if (end < json.length && json[end - 1].isHighSurrogate()) end--
+            add(CHUNK_PREFIX + json.substring(start, end))
+            start = end
+        }
+    }
+}
+
+internal fun decodeConversationCache(chunks: List<String>): Conversation? {
+    if (chunks.isEmpty()) return null
+    return runCatching {
+        if (chunks.first().startsWith(CHUNK_PREFIX)) {
+            require(chunks.all { it.startsWith(CHUNK_PREFIX) })
+            wireJson.decodeFromString<Conversation>(chunks.joinToString("") { it.removePrefix(CHUNK_PREFIX) })
+        } else {
+            // Existing installed versions stored one complete Conversation per row.
+            chunks.map { wireJson.decodeFromString<Conversation>(it) }.reduce { first, next ->
+                first.copy(items = first.items + next.items, activeTurn = next.activeTurn,
+                    nextCursor = next.nextCursor, status = next.status)
+            }
+        }
+    }.getOrNull()
+}

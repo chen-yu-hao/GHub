@@ -1,0 +1,73 @@
+{
+  "baseline": "0.164.0+",
+  "notes": "Synthetic redacted protocol fixtures; IDs and paths are examples. No jsonrpc member.",
+  "initialize": {
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "clientInfo": {
+        "name": "remote_gpt_android",
+        "title": "GHub",
+        "version": "0.1.0"
+      },
+      "capabilities": {
+        "experimentalApi": false
+      }
+    }
+  },
+  "initialized": {
+    "method": "initialized",
+    "params": {}
+  },
+  "resume": {
+    "id": 2,
+    "method": "thread/resume",
+    "params": {
+      "threadId": "thread-example",
+      "excludeTurns": true
+    }
+  },
+  "approval": {
+    "id": "request-example",
+    "method": "item/commandExecution/requestApproval",
+    "params": {
+      "threadId": "thread-example",
+      "turnId": "turn-example",
+      "itemId": "item-example",
+      "startedAtMs": 0,
+      "command": "printf 'probe\\n'",
+      "cwd": "/tmp",
+      "reason": "Connectivity check"
+    }
+  },
+  "decision": {
+    "id": "request-example",
+    "result": {
+      "decision": "accept"
+    }
+  },
+  "resolved": {
+    "method": "serverRequest/resolved",
+    "params": {
+      "threadId": "thread-example",
+      "requestId": "request-example"
+    }
+  },
+  "image": {
+    "id": 3,
+    "method": "turn/start",
+    "params": {
+      "threadId": "thread-example",
+      "input": [
+        {
+          "type": "text",
+          "text": "Explain this image"
+        },
+        {
+          "type": "localImage",
+          "path": "/workspace/.remote-gpt/attachments/example.png"
+        }
+      ]
+    }
+  }
+}

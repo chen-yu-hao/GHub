@@ -1,0 +1,19 @@
+# Third-party components
+
+GHub is distributed under GPL-3.0-only.
+
+| Component | Upstream | License |
+|---|---|---|
+| Termux terminal-emulator / terminal-view | https://github.com/termux/termux-app | GPL-3.0-only with per-file Apache-2.0 exceptions |
+| Kotlin, kotlinx.coroutines, kotlinx.serialization | https://github.com/JetBrains/kotlin | Apache-2.0 |
+| AndroidX / Compose / Room / DataStore | https://android.googlesource.com/platform/frameworks/support/ | Apache-2.0 |
+| SSHJ | https://github.com/hierynomus/sshj | Apache-2.0 |
+| Bouncy Castle | https://www.bouncycastle.org/licence.html | Bouncy Castle License (MIT-style) |
+| Java-WebSocket | https://github.com/TooTallNate/Java-WebSocket | MIT |
+| SLF4J | https://www.slf4j.org/license.html | MIT |
+| Multiplatform Markdown Renderer | https://github.com/mikepenz/multiplatform-markdown-renderer | Apache-2.0 |
+| Lucide icons 0.468.0 (including Feather-derived artwork) | https://github.com/lucide-icons/lucide | ISC / MIT |
+| Haze 1.6.10 (Copyright Christopher Banes and contributors) | https://github.com/chrisbanes/haze | Apache-2.0 |
+| Coil | https://github.com/coil-kt/coil | Apache-2.0 |
+
+Termux source and resource files are vendored in the terminal module. Copyright and license headers are retained; the exact upstream revision and modifications are recorded in `terminal/UPSTREAM.md`. The upstream local-process/JNI session is replaced by a Kotlin remote-PTY adapter. No Termux runtime, package manager or shell binaries are bundled.

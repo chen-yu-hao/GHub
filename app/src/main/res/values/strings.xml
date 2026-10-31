@@ -1,0 +1,443 @@
+<resources>
+    <string name="ui_0_164_0_and_newer_0_x" formatted="false">0.164.0 and newer 0.x releases</string>
+    <string name="ui_keep_remote_connection_active" formatted="false">Keep remote connection active</string>
+    <string name="ui_stop_keeping_alive" formatted="false">Stop keeping alive</string>
+    <string name="ui_background_connection" formatted="false">Background connection</string>
+    <string name="ui_keep_ssh_and_codex_sessions_connected" formatted="false">Keep SSH and Codex sessions connected</string>
+    <string name="ui_speech_recognition_is_unavailable_you_can_use" formatted="false">Speech recognition is unavailable. You can use voice typing on your keyboard.</string>
+    <string name="ui_no_speech_detected_please_try_again" formatted="false">No speech detected. Please try again.</string>
+    <string name="ui_microphone_permission_is_required_for_voice_input" formatted="false">Microphone permission is required for voice input.</string>
+    <string name="ui_speech_recognition_is_unavailable_please_use_the" formatted="false">Speech recognition is unavailable. Please use the keyboard.</string>
+    <string name="ui_root_directory" formatted="false">Root directory</string>
+    <string name="ui_ungrouped" formatted="false">Ungrouped</string>
+    <string name="ui_cannot_read_or_write_local_data_check" formatted="false">Cannot read or write local data. Check available storage. Drafts remain in memory; please keep the app open.</string>
+    <string name="ui_enter_an_absolute_remote_directory" formatted="false">Enter an absolute remote directory</string>
+    <string name="ui_enter_a_connection_name" formatted="false">Enter a connection name</string>
+    <string name="ui_enter_the_codex_executable_path" formatted="false">Enter the Codex executable path</string>
+    <string name="ui_enter_a_host_username_and_valid_port" formatted="false">Enter a host, username, and valid port</string>
+    <string name="ui_connection_saved" formatted="false">Connection saved</string>
+    <string name="ui_save_failed" formatted="false">Save failed</string>
+    <string name="ui_unknown" formatted="false">Unknown</string>
+    <string name="ui_unsupported_cli_version_the_minimum_is_the">Unsupported CLI version: %1$s. The minimum is %2$s. The remote installation will not be changed.</string>
+    <string name="ui_app_server_did_not_report_a_version">App Server did not report a version. The minimum is %1$s. The remote installation will not be changed.</string>
+    <string name="ui_unsupported_app_server_version_the_minimum_is">Unsupported App Server version: %1$s. The minimum is %2$s. The remote installation will not be changed.</string>
+    <string name="ui_the_socket_did_not_report_a_supported">The socket did not report a supported App Server version: %1$s. The minimum is %2$s.</string>
+    <string name="ui_custom_model_provider" formatted="false">Custom model provider</string>
+    <string name="ui_run_codex_login_on_the_server_first" formatted="false">Run codex login on the server first</string>
+    <string name="ui_the_server_is_connected_but_session_sync" formatted="false">The server is connected, but session sync was rejected. Open another session or retry.</string>
+    <string name="ui_this_client_cannot_handle_no_permission_was">This client cannot handle %1$s. No permission was granted. Handle the request in the CLI.</string>
+    <string name="ui_output_processing_is_behind_restoring_the_session" formatted="false">Output processing is behind. Restoring the session.</string>
+    <string name="ui_connection_heartbeat_timed_out_reconnecting" formatted="false">Connection heartbeat timed out. Reconnecting.</string>
+    <string name="ui_the_remote_proxy_closed_reconnecting" formatted="false">The remote proxy closed. Reconnecting.</string>
+    <string name="ui_connection_interrupted_restoring_the_original_session" formatted="false">Connection interrupted. Restoring the original session.</string>
+    <string name="ui_local_session_cache_was_too_large_and" formatted="false">Local session cache was too large and has been cleared. Syncing from the server.</string>
+    <string name="ui_ssh_authentication_failed_check_the_username_key" formatted="false">SSH authentication failed. Check the username, key, passphrase, and authentication method.</string>
+    <string name="ui_ssh_connection_failed_check_the_host_fingerprint" formatted="false">SSH connection failed. Check the host fingerprint, network, and jump hosts.</string>
+    <string name="ui_operation_failed_check_the_connection_and_try" formatted="false">Operation failed. Check the connection and try again.</string>
+    <string name="ui_you_can_continue_after_reconnecting_your_draft" formatted="false">You can continue after reconnecting. Your draft is preserved.</string>
+    <string name="ui_remote_files_are_temporarily_unavailable_please_try" formatted="false">Remote files are temporarily unavailable. Please try again.</string>
+    <string name="ui_choose_a_valid_remote_project_directory_first" formatted="false">Choose a valid remote project directory first.</string>
+    <string name="ui_the_server_is_not_connected_reconnect_before" formatted="false">The server is not connected. Reconnect before creating a session.</string>
+    <string name="ui_session_created_open_it_from_the_project" formatted="false">Session created. Open it from the project list after reconnecting.</string>
+    <string name="ui_session_creation_is_unconfirmed_reconnect_and_check" formatted="false">Session creation is unconfirmed. Reconnect and check the project before trying again.</string>
+    <string name="ui_could_not_create_session">Could not create session: %1$s</string>
+    <string name="ui_could_not_restore_this_session">Could not restore this session: %1$s</string>
+    <string name="ui_cannot_verify_that_the_local_record_is" formatted="false">Cannot verify that the local record is empty. It has been kept.</string>
+    <string name="ui_this_session_still_has_local_content_its" formatted="false">This session still has local content. Its record has been kept.</string>
+    <string name="ui_empty_local_record_removed" formatted="false">Empty local record removed.</string>
+    <string name="ui_upload_interrupted_select_the_file_again" formatted="false">Upload interrupted. Select the file again.</string>
+    <string name="ui_this_session_is_running_or_waiting_for" formatted="false">This session is running or waiting for approval. Finish it before archiving.</string>
+    <string name="ui_the_original_server_is_disconnected_reconnect_and" formatted="false">The original server is disconnected. Reconnect and restore the session from Archived.</string>
+    <string name="ui_restore_this_session_before_sending_your_draft" formatted="false">Restore this session before sending. Your draft is preserved.</string>
+    <string name="ui_attachment">Attachment: %1$s</string>
+    <string name="ui_the_current_model_does_not_support_this" formatted="false">The current model does not support this reasoning level. Select another level.</string>
+    <string name="ui_message_sent_restoring_session_state_please_do" formatted="false">Message sent. Restoring session state; please do not resend.</string>
+    <string name="ui_file_saved" formatted="false">File saved</string>
+    <string name="ui_choose_a_session_first" formatted="false">Choose a session first</string>
+    <string name="ui_select_a_session_first" formatted="false">Select a session first</string>
+    <string name="ui_image" formatted="false">Image</string>
+    <string name="ui_attachment_57" formatted="false">Attachment</string>
+    <string name="ui_remote_files_are_temporarily_unavailable" formatted="false">Remote files are temporarily unavailable</string>
+    <string name="ui_cannot_determine_the_session_working_directory" formatted="false">Cannot determine the session working directory</string>
+    <string name="ui_cannot_open_file" formatted="false">Cannot open file</string>
+    <string name="ui_cannot_open_the_save_location" formatted="false">Cannot open the save location</string>
+    <string name="ui_download_complete" formatted="false">Download complete</string>
+    <string name="ui_terminal_input_is_too_fast_please_try" formatted="false">Terminal input is too fast. Please try again.</string>
+    <string name="ui_terminal">Terminal %1$s</string>
+    <string name="ui_local_session_cache_cleared_drafts_are_preserved" formatted="false">Local session cache cleared. Drafts are preserved; reconnect to sync remote sessions.</string>
+    <string name="ui_diagnostics_exported_without_credentials_or_message_content" formatted="false">Diagnostics exported without credentials or message content.</string>
+    <string name="ui_could_not_export_diagnostics_choose_a_writable" formatted="false">Could not export diagnostics. Choose a writable location.</string>
+    <string name="ui_could_not_save_credentials" formatted="false">Could not save credentials</string>
+    <string name="ui_cannot_read_credentials_import_them_again" formatted="false">Cannot read credentials. Import them again.</string>
+    <string name="ui_could_not_remove_credentials" formatted="false">Could not remove credentials</string>
+    <string name="ui_copied" formatted="false">Copied</string>
+    <string name="ui_copy" formatted="false">Copy</string>
+    <string name="ui_code" formatted="false">Code</string>
+    <string name="ui_collapse_code" formatted="false">Collapse code</string>
+    <string name="ui_show_full_code_lines">Show full code (%1$s lines)</string>
+    <string name="ui_expand_table" formatted="false">Expand table</string>
+    <string name="ui_swipe_sideways_to_view" formatted="false">Swipe sideways to view</string>
+    <string name="ui_collapse_table" formatted="false">Collapse table</string>
+    <string name="ui_show_all_rows">Show all %1$s rows</string>
+    <string name="ui_table" formatted="false">Table</string>
+    <string name="ui_back_to_session" formatted="false">Back to session</string>
+    <string name="ui_collapse_details" formatted="false">Collapse details</string>
+    <string name="ui_expand_details" formatted="false">Expand details</string>
+    <string name="ui_file_changes" formatted="false">File changes</string>
+    <string name="ui_command_execution" formatted="false">Command execution</string>
+    <string name="ui_execution_plan" formatted="false">Execution plan</string>
+    <string name="ui_reasoning_summary" formatted="false">Reasoning summary</string>
+    <string name="ui_collapse" formatted="false">Collapse</string>
+    <string name="ui_expand" formatted="false">Expand</string>
+    <string name="ui_running" formatted="false">Running…</string>
+    <string name="ui_image_attachment" formatted="false">Image attachment</string>
+    <string name="ui_view_image">View image %1$s</string>
+    <string name="ui_approval_required" formatted="false">Approval required</string>
+    <string name="ui_codex_is_requesting_permission_to_modify_files" formatted="false">Codex is requesting permission to modify files.</string>
+    <string name="ui_working_directory">Working directory: %1$s</string>
+    <string name="ui_requested_write_scope">Requested write scope: %1$s</string>
+    <string name="ui_network_access">Network access: %1$s</string>
+    <string name="ui_permission_applies_to_this_operation_only_no" formatted="false">Permission applies to this operation only. No permanent rule is saved.</string>
+    <string name="ui_submitted_waiting_for_server_confirmation" formatted="false">Submitted. Waiting for server confirmation…</string>
+    <string name="ui_allow_once" formatted="false">Allow once</string>
+    <string name="ui_reject" formatted="false">Reject</string>
+    <string name="ui_cancel" formatted="false">Cancel</string>
+    <string name="ui_check_connection_recovery_and_avoid_duplicate_messages" formatted="false">Check connection recovery and avoid duplicate messages.</string>
+    <string name="ui_found_the_connection_recovery_logic_n_ni" formatted="false">Found the connection recovery logic.\n\nI will check the server before restoring the session.</string>
+    <string name="ui_project_directory" formatted="false">Project directory</string>
+    <string name="ui_connecting_to_remote_files" formatted="false">Connecting to remote files</string>
+    <string name="ui_this_directory_will_load_automatically_when_the" formatted="false">This directory will load automatically when the connection is restored.</string>
+    <string name="ui_this_directory_is_empty" formatted="false">This directory is empty</string>
+    <string name="ui_connect_to_browse_files_edit_text_or" formatted="false">Connect to browse files, edit text, or attach files to a session.</string>
+    <string name="ui_folder" formatted="false">Folder</string>
+    <string name="ui_actions_for">Actions for %1$s</string>
+    <string name="ui_directory" formatted="false">Directory</string>
+    <string name="ui_parent_directory" formatted="false">Parent directory</string>
+    <string name="ui_open_directory" formatted="false">Open directory</string>
+    <string name="ui_project_root" formatted="false">Project root</string>
+    <string name="ui_refresh_directory" formatted="false">Refresh directory</string>
+    <string name="ui_open_remote_directory" formatted="false">Open remote directory</string>
+    <string name="ui_absolute_path" formatted="false">Absolute path</string>
+    <string name="ui_image_119">Image · %1$s</string>
+    <string name="ui_preview_image" formatted="false">Preview image</string>
+    <string name="ui_edit_text" formatted="false">Edit text</string>
+    <string name="ui_attach_to_this_session" formatted="false">Attach to this session</string>
+    <string name="ui_download_to_device" formatted="false">Download to device</string>
+    <string name="ui_back_to_files" formatted="false">Back to files</string>
+    <string name="ui_save" formatted="false">Save</string>
+    <string name="ui_remote_file_changed" formatted="false">Remote file changed</string>
+    <string name="ui_the_file_changed_after_you_opened_it" formatted="false">The file changed after you opened it. Reload it or overwrite it with your edits.</string>
+    <string name="ui_overwrite_remote_file" formatted="false">Overwrite remote file</string>
+    <string name="ui_reload" formatted="false">Reload</string>
+    <string name="ui_discard_unsaved_changes" formatted="false">Discard unsaved changes?</string>
+    <string name="ui_discard_changes" formatted="false">Discard changes</string>
+    <string name="ui_keep_editing" formatted="false">Keep editing</string>
+    <string name="ui_saved_credentials_cannot_be_decrypted_import_them" formatted="false">Saved credentials cannot be decrypted. Import them again.</string>
+    <string name="ui_cannot_read_private_key" formatted="false">Cannot read private key</string>
+    <string name="ui_select_a_private_key_not_a_pub" formatted="false">Select a private key, not a .pub public key file.</string>
+    <string name="ui_server_connection" formatted="false">Server connection</string>
+    <string name="ui_back_to_servers" formatted="false">Back to servers</string>
+    <string name="ui_could_not_save_check_local_storage_and" formatted="false">Could not save. Check local storage and credentials, then try again.</string>
+    <string name="ui_saving" formatted="false">Saving…</string>
+    <string name="ui_save_connection" formatted="false">Save connection</string>
+    <string name="ui_connection_name" formatted="false">Connection name</string>
+    <string name="ui_for_example_development_server" formatted="false">For example: Development server</string>
+    <string name="ui_target_host" formatted="false">Target host</string>
+    <string name="ui_advanced_settings" formatted="false">Advanced settings</string>
+    <string name="ui_hide_jump_hosts_and_codex_settings" formatted="false">Hide jump hosts and Codex settings</string>
+    <string name="ui_jump_hosts_codex_path_and_working_directory" formatted="false">Jump hosts, Codex path, and working directory</string>
+    <string name="ui_jump_hosts" formatted="false">Jump hosts</string>
+    <string name="ui_add_hosts_in_connection_order_each_host" formatted="false">Add hosts in connection order. Each host has separate credentials.</string>
+    <string name="ui_hop">Hop %1$s</string>
+    <string name="ui_remove_jump_host" formatted="false">Remove jump host</string>
+    <string name="ui_add_jump_host" formatted="false">Add jump host</string>
+    <string name="ui_remote_codex" formatted="false">Remote Codex</string>
+    <string name="ui_executable_path" formatted="false">Executable path</string>
+    <string name="ui_for_example_codex_or_home_user_local" formatted="false">For example: codex or /home/user/.local/bin/codex</string>
+    <string name="ui_default_working_directory" formatted="false">Default working directory</string>
+    <string name="ui_service_socket_path_optional" formatted="false">Service socket path (optional)</string>
+    <string name="ui_leave_empty_to_use_the_default_shared" formatted="false">Leave empty to use the default shared service.</string>
+    <string name="ui_credentials_are_encrypted_on_this_device_host" formatted="false">Credentials are encrypted on this device. Host fingerprints are verified when connecting.</string>
+    <string name="ui_delete_server_connection" formatted="false">Delete server connection</string>
+    <string name="ui_delete_server_connection_160" formatted="false">Delete server connection?</string>
+    <string name="ui_this_removes_the_connection_and_credentials_saved" formatted="false">This removes the connection and credentials saved on your device. Remote sessions are kept.</string>
+    <string name="ui_delete" formatted="false">Delete</string>
+    <string name="ui_host_address" formatted="false">Host address</string>
+    <string name="ui_username" formatted="false">Username</string>
+    <string name="ui_port" formatted="false">Port</string>
+    <string name="ui_private_key" formatted="false">Private key</string>
+    <string name="ui_password" formatted="false">Password</string>
+    <string name="ui_interactive_authentication" formatted="false">Interactive authentication</string>
+    <string name="ui_import_private_key" formatted="false">Import private key</string>
+    <string name="ui_key_imported_replace" formatted="false">Key imported · Replace</string>
+    <string name="ui_key_passphrase_optional" formatted="false">Key passphrase (optional)</string>
+    <string name="ui_ssh_password" formatted="false">SSH password</string>
+    <string name="ui_enter_the_password_or_verification_code_requested" formatted="false">Enter the password or verification code requested by the server when connecting.</string>
+    <string name="ui_verify_host_identity" formatted="false">Verify host identity</string>
+    <string name="ui_host_fingerprint_changed" formatted="false">Host fingerprint changed</string>
+    <string name="ui_previous_nverify_this_change_through_a_trusted">Previous: %1$s\nVerify this change through a trusted channel before updating trust.</string>
+    <string name="ui_compare_this_fingerprint_with_one_provided_by" formatted="false">Compare this fingerprint with one provided by your server. It will be remembered after confirmation.</string>
+    <string name="ui_trust_and_connect" formatted="false">Trust and connect</string>
+    <string name="ui_verified_update_trust" formatted="false">Verified · Update trust</string>
+    <string name="ui_ssh_authentication" formatted="false">SSH authentication</string>
+    <string name="ui_continue" formatted="false">Continue</string>
+    <string name="ui_cannot_read_the_license_try_again_or" formatted="false">Cannot read the license. Try again or check the licenses directory in the project source.</string>
+    <string name="ui_close" formatted="false">Close</string>
+    <string name="ui_back" formatted="false">Back</string>
+    <string name="ui_open_source_licenses" formatted="false">Open-source licenses</string>
+    <string name="ui_settings" formatted="false">Settings</string>
+    <string name="ui_connection" formatted="false">Connection</string>
+    <string name="ui_servers" formatted="false">Servers</string>
+    <string name="ui_servers_189">%1$s servers</string>
+    <string name="ui_ssh_connections_keys_and_jump_hosts" formatted="false">SSH connections, keys, and jump hosts</string>
+    <string name="ui_keep_connected_in_background" formatted="false">Keep connected in background</string>
+    <string name="ui_show_an_ongoing_notification_and_keep_ssh" formatted="false">Show an ongoing notification and keep SSH and Codex events connected</string>
+    <string name="ui_reconnect_when_needed_to_save_battery" formatted="false">Reconnect when needed to save battery</string>
+    <string name="ui_application" formatted="false">Application</string>
+    <string name="ui_appearance" formatted="false">Appearance</string>
+    <string name="ui_light" formatted="false">Light</string>
+    <string name="ui_dark" formatted="false">Dark</string>
+    <string name="ui_system_default" formatted="false">System default</string>
+    <string name="ui_data_and_diagnostics" formatted="false">Data and diagnostics</string>
+    <string name="ui_cache_diagnostic_logs_and_licenses" formatted="false">Cache, diagnostic logs, and licenses</string>
+    <string name="ui_no_telemetry_by_default_tasks_run_on" formatted="false">No telemetry by default. Tasks run on the server.</string>
+    <string name="ui_theme" formatted="false">Theme</string>
+    <string name="ui_local_data" formatted="false">Local data</string>
+    <string name="ui_clear_session_cache" formatted="false">Clear session cache</string>
+    <string name="ui_keep_drafts_server_connections_and_remote_sessions" formatted="false">Keep drafts, server connections, and remote sessions</string>
+    <string name="ui_help_and_diagnostics" formatted="false">Help and diagnostics</string>
+    <string name="ui_export_diagnostics" formatted="false">Export diagnostics</string>
+    <string name="ui_excludes_keys_passwords_and_message_content" formatted="false">Excludes keys, passwords, and message content</string>
+    <string name="ui_clear_local_session_cache" formatted="false">Clear local session cache?</string>
+    <string name="ui_drafts_connections_and_remote_sessions_are_kept" formatted="false">Drafts, connections, and remote sessions are kept. Message history can be synced after reconnecting.</string>
+    <string name="ui_clear_cache" formatted="false">Clear cache</string>
+    <string name="ui_add_server" formatted="false">Add server</string>
+    <string name="ui_add_an_ssh_connection_to_access_projects" formatted="false">Add an SSH connection to access projects, files, and terminals.</string>
+    <string name="ui_switch_server" formatted="false">Switch server</string>
+    <string name="ui_no_server_connections_yet" formatted="false">No server connections yet</string>
+    <string name="ui_edit_connection" formatted="false">Edit connection</string>
+    <string name="ui_open_projects" formatted="false">Open projects</string>
+    <string name="ui_disconnect" formatted="false">Disconnect</string>
+    <string name="ui_connect" formatted="false">Connect</string>
+    <string name="ui_status" formatted="false">Status</string>
+    <string name="ui_address" formatted="false">Address</string>
+    <string name="ui_direct_connection" formatted="false">Direct connection</string>
+    <string name="ui_hops">%1$s hops</string>
+    <string name="ui_remote_environment" formatted="false">Remote environment</string>
+    <string name="ui_codex_account" formatted="false">Codex account</string>
+    <string name="ui_available_after_connecting" formatted="false">Available after connecting</string>
+    <string name="ui_not_loaded" formatted="false">Not loaded</string>
+    <string name="ui_app_server" formatted="false">App Server</string>
+    <string name="ui_choose_model" formatted="false">Choose model</string>
+    <string name="ui_choose_model_current">Choose model: %1$s</string>
+    <string name="ui_reasoning">Reasoning · %1$s</string>
+    <string name="ui_uploading" formatted="false">Uploading</string>
+    <string name="ui_ready" formatted="false">Ready</string>
+    <string name="ui_upload_failed" formatted="false">Upload failed</string>
+    <string name="ui_remove_attachment">Remove attachment %1$s</string>
+    <string name="ui_message_input" formatted="false">Message input</string>
+    <string name="ui_listening" formatted="false">Listening…</string>
+    <string name="ui_describe_a_task_or_ask_a_follow" formatted="false">Describe a task or ask a follow-up…</string>
+    <string name="ui_add_attachment" formatted="false">Add attachment</string>
+    <string name="ui_stop_voice_input" formatted="false">Stop voice input</string>
+    <string name="ui_voice_input" formatted="false">Voice input</string>
+    <string name="ui_stop_task" formatted="false">Stop task</string>
+    <string name="ui_send_message" formatted="false">Send message</string>
+    <string name="ui_input_options" formatted="false">Input options</string>
+    <string name="ui_choose_image" formatted="false">Choose image</string>
+    <string name="ui_take_photo" formatted="false">Take photo</string>
+    <string name="ui_choose_file" formatted="false">Choose file</string>
+    <string name="ui_use_session_settings" formatted="false">Use session settings</string>
+    <string name="ui_no_models_loaded_connect_to_the_server" formatted="false">No models loaded. Connect to the server and try again.</string>
+    <string name="ui_reload_models" formatted="false">Reload models</string>
+    <string name="ui_reasoning_level" formatted="false">Reasoning level</string>
+    <string name="ui_reasoning_level_current">Reasoning level: %1$s</string>
+    <string name="ui_this_model_does_not_offer_adjustable_reasoning" formatted="false">This model does not offer adjustable reasoning levels.</string>
+    <string name="ui_minimal" formatted="false">Minimal</string>
+    <string name="ui_low" formatted="false">Low</string>
+    <string name="ui_medium" formatted="false">Medium</string>
+    <string name="ui_high" formatted="false">High</string>
+    <string name="ui_extra_high" formatted="false">Extra high</string>
+    <string name="ui_maximum" formatted="false">Maximum</string>
+    <string name="ui_ultra" formatted="false">Ultra</string>
+    <string name="ui_default" formatted="false">Default</string>
+    <string name="ui_archived_sessions" formatted="false">Archived sessions</string>
+    <string name="ui_projects" formatted="false">Projects</string>
+    <string name="ui_back_to_recent" formatted="false">Back to recent</string>
+    <string name="ui_archived" formatted="false">Archived</string>
+    <string name="ui_add_your_project" formatted="false">Add your project</string>
+    <string name="ui_choose_a_remote_working_directory_to_start" formatted="false">Choose a remote working directory to start a session.</string>
+    <string name="ui_add_project" formatted="false">Add project</string>
+    <string name="ui_collapse_269" formatted="false">Collapse</string>
+    <string name="ui_approval_needed">Approval needed · %1$s</string>
+    <string name="ui_completed">Completed · %1$s</string>
+    <string name="ui_running_272" formatted="false">Running</string>
+    <string name="ui_actions_for_project">Actions for project %1$s</string>
+    <string name="ui_archiving" formatted="false">Archiving</string>
+    <string name="ui_unavailable" formatted="false">Unavailable</string>
+    <string name="ui_approval_needed_276" formatted="false">Approval needed</string>
+    <string name="ui_new_result" formatted="false">New result</string>
+    <string name="ui_creating" formatted="false">Creating…</string>
+    <string name="ui_new_session" formatted="false">New session</string>
+    <string name="ui_view_all" formatted="false">View all</string>
+    <string name="ui_load_earlier" formatted="false">Load earlier</string>
+    <string name="ui_collapse_list" formatted="false">Collapse list</string>
+    <string name="ui_you_can_load_earlier_sessions" formatted="false">You can load earlier sessions</string>
+    <string name="ui_no_sessions_yet" formatted="false">No sessions yet</string>
+    <string name="ui_load_more_projects_and_sessions" formatted="false">Load more projects and sessions</string>
+    <string name="ui_workspace" formatted="false">Workspace</string>
+    <string name="ui_return_to_current_session" formatted="false">Return to current session</string>
+    <string name="ui_back_to_projects" formatted="false">Back to projects</string>
+    <string name="ui_files" formatted="false">Files</string>
+    <string name="ui_terminal_290" formatted="false">Terminal</string>
+    <string name="ui_choose_project" formatted="false">Choose project</string>
+    <string name="ui_switch_project" formatted="false">Switch project</string>
+    <string name="ui_refresh" formatted="false">Refresh</string>
+    <string name="ui_selected" formatted="false">Selected</string>
+    <string name="ui_project_name_optional" formatted="false">Project name (optional)</string>
+    <string name="ui_remote_working_directory" formatted="false">Remote working directory</string>
+    <string name="ui_session_not_found_on_server" formatted="false">Session not found on server</string>
+    <string name="ui_could_not_restore_session" formatted="false">Could not restore session</string>
+    <string name="ui_check_again" formatted="false">Check again</string>
+    <string name="ui_back_to_project" formatted="false">Back to project</string>
+    <string name="ui_remove_empty_local_record" formatted="false">Remove empty local record</string>
+    <string name="ui_load_earlier_messages" formatted="false">Load earlier messages</string>
+    <string name="ui_ready_to_start" formatted="false">Ready to start</string>
+    <string name="ui_describe_your_task_or_attach_relevant_files" formatted="false">Describe your task or attach relevant files.</string>
+    <string name="ui_this_turn_failed_check_the_execution_details" formatted="false">This turn failed. Check the execution details.</string>
+    <string name="ui_this_turn_was_interrupted" formatted="false">This turn was interrupted.</string>
+    <string name="ui_waiting_for_approval" formatted="false">Waiting for approval</string>
+    <string name="ui_codex_is_working" formatted="false">Codex is working</string>
+    <string name="ui_task_completed_view_latest" formatted="false">Task completed · View latest</string>
+    <string name="ui_new_messages_view_latest" formatted="false">New messages · View latest</string>
+    <string name="ui_latest" formatted="false">Latest</string>
+    <string name="ui_this_session_is_archived_restore_it_to" formatted="false">This session is archived. Restore it to send messages.</string>
+    <string name="ui_restore_session" formatted="false">Restore session</string>
+    <string name="ui_your_last_message_has_an_unconfirmed_delivery" formatted="false">Your last message has an unconfirmed delivery status. Sync and check the history to avoid duplicate execution.</string>
+    <string name="ui_history_checked_unlock_draft" formatted="false">History checked · Unlock draft</string>
+    <string name="ui_rename_session" formatted="false">Rename session</string>
+    <string name="ui_name" formatted="false">Name</string>
+    <string name="ui_have_you_checked_the_remote_history" formatted="false">Have you checked the remote history?</string>
+    <string name="ui_unlocking_only_restores_draft_editing_it_does" formatted="false">Unlocking only restores draft editing. It does not resend. If the server received the message, remove duplicate content from the draft.</string>
+    <string name="ui_unlock_draft" formatted="false">Unlock draft</string>
+    <string name="ui_session_options" formatted="false">Session options</string>
+    <string name="ui_project_files" formatted="false">Project files</string>
+    <string name="ui_sync_session" formatted="false">Sync session</string>
+    <string name="ui_rename" formatted="false">Rename</string>
+    <string name="ui_archive" formatted="false">Archive</string>
+    <string name="ui_open_remote_terminal" formatted="false">Open remote terminal</string>
+    <string name="ui_supports_vim_tmux_and_common_terminal_programs" formatted="false">Supports vim, tmux, and common terminal programs. Use tmux on the server to preserve work across disconnects.</string>
+    <string name="ui_new_terminal" formatted="false">New terminal</string>
+    <string name="ui_ssh_terminal" formatted="false">SSH terminal</string>
+    <string name="ui_close_330">Close %1$s</string>
+    <string name="ui_paste" formatted="false">Paste</string>
+    <string name="ui_show_keyboard" formatted="false">Show keyboard</string>
+    <string name="ui_new_terminal_session" formatted="false">New terminal session</string>
+    <string name="ui_decrease_terminal_text_size" formatted="false">Decrease terminal text size</string>
+    <string name="ui_increase_terminal_text_size" formatted="false">Increase terminal text size</string>
+    <string name="ui_terminal_disconnected_reconnect_and_use_tmux_to" formatted="false">Terminal disconnected. Reconnect and use tmux to resume remote work.</string>
+    <string name="ui_close_terminal" formatted="false">Close terminal?</string>
+    <string name="ui_programs_in_a_regular_shell_may_stop" formatted="false">Programs in a regular shell may stop when the connection closes. tmux sessions can keep running on the server.</string>
+    <string name="ui_close_terminal_339" formatted="false">Close terminal</string>
+    <string name="ui_collapse_execution_details" formatted="false">Collapse execution details</string>
+    <string name="ui_view_execution_details" formatted="false">View execution details</string>
+    <string name="ui_failed_operations_view_details">%1$s failed operations · View details</string>
+    <string name="ui_execution_details_includes_unsupported_types" formatted="false">Execution details · Includes unsupported types</string>
+    <string name="ui_working_events">Working · %1$s events</string>
+    <string name="ui_commands_run_view_details">%1$s commands run · View details</string>
+    <string name="ui_events_view_details">%1$s events · View details</string>
+    <string name="ui_file_changes_failed" formatted="false">File changes failed</string>
+    <string name="ui_files_changed">%1$s files changed</string>
+    <string name="ui_file_change_details" formatted="false">File change details</string>
+    <string name="ui_the_server_did_not_provide_a_diff" formatted="false">The server did not provide a diff</string>
+    <string name="ui_microphone_permission_was_denied_you_can_continue" formatted="false">Microphone permission was denied. You can continue typing.</string>
+    <string name="ui_notification_permission_is_required_to_display_background" formatted="false">Notification permission is required to display background connection status.</string>
+    <string name="ui_archived_353">Archived: %1$s</string>
+    <string name="ui_undo" formatted="false">Undo</string>
+    <string name="ui_cannot_keep_the_connection_active_check_notification" formatted="false">Cannot keep the connection active. Check notification permissions.</string>
+    <string name="ui_sessions" formatted="false">Sessions</string>
+    <string name="ui_more_actions" formatted="false">More actions</string>
+    <string name="ui_connect_your_development_machine" formatted="false">Connect your development machine</string>
+    <string name="ui_continue_codex_sessions_and_browse_files_and" formatted="false">Continue Codex sessions and browse files and task status from your phone.</string>
+    <string name="ui_open_settings" formatted="false">Open settings</string>
+    <string name="ui_still_reconnecting_remote_tasks_are_not_interrupted" formatted="false">Still reconnecting. Remote tasks are not interrupted.</string>
+    <string name="ui_retry_now" formatted="false">Retry now</string>
+    <string name="ui_establishing_a_secure_connection" formatted="false">Establishing a secure connection…</string>
+    <string name="ui_connect_to_continue_local_drafts_are_preserved" formatted="false">Connect to continue. Local drafts are preserved.</string>
+    <string name="ui_cancel_connection" formatted="false">Cancel connection</string>
+    <string name="ui_set_up_background_service" formatted="false">Set up background service</string>
+    <string name="ui_no_camera_app_found_choose_an_image" formatted="false">No camera app found. Choose an image from your gallery.</string>
+    <string name="ui_create_session" formatted="false">Create session</string>
+    <string name="ui_rename_project" formatted="false">Rename project</string>
+    <string name="ui_project_name" formatted="false">Project name</string>
+    <string name="ui_set_up_the_official_daemon" formatted="false">Set up the official daemon</string>
+    <string name="ui_this_runs_codex_app_server_daemon_bootstrap" formatted="false">This runs codex app-server daemon bootstrap on the current host to install the official service configuration. It does not upgrade Codex or stop existing tasks.</string>
+    <string name="ui_set_up_and_connect" formatted="false">Set up and connect</string>
+    <string name="ui_image_preview" formatted="false">Image preview</string>
+    <string name="ui_remote_image_preview" formatted="false">Remote image preview</string>
+    <string name="ui_paste_into_the_remote_terminal" formatted="false">Paste into the remote terminal?</string>
+    <string name="ui_copy_terminal_content" formatted="false">Copy terminal content?</string>
+    <string name="ui_clipboard_content_will_be_sent_to_the" formatted="false">Clipboard content will be sent to the current SSH terminal.</string>
+    <string name="ui_confirm" formatted="false">Confirm</string>
+    <string name="ui_ok" formatted="false">OK</string>
+    <string name="ui_connected" formatted="false">Connected</string>
+    <string name="ui_connecting" formatted="false">Connecting</string>
+    <string name="ui_checking_connection" formatted="false">Checking connection</string>
+    <string name="ui_waiting_for_network" formatted="false">Waiting for network</string>
+    <string name="ui_reconnecting" formatted="false">Reconnecting</string>
+    <string name="ui_syncing_sessions" formatted="false">Syncing sessions</string>
+    <string name="ui_needs_attention" formatted="false">Needs attention</string>
+    <string name="ui_disconnected" formatted="false">Disconnected</string>
+    <string name="ui_language">Language</string>
+    <string name="ui_off">Off</string>
+    <string name="ui_archive_session">Archive session</string>
+    <string name="ui_model_default">Model default</string>
+    <string name="ui_uncertain_delivery">Delivery is unconfirmed. Check the session history before sending again.</string>
+    <string name="ui_thread_unavailable_detail">This session was not found on the server. It may not have been created successfully. Local drafts and cached messages are preserved.</string>
+    <string name="task_running">Running</string>
+    <string name="task_completed">Completed</string>
+    <string name="task_failed">Failed</string>
+    <string name="task_interrupted">Interrupted</string>
+    <string name="task_unknown">Status unconfirmed</string>
+    <string name="task_failed_count">Failed · %1$s</string>
+    <string name="ui_hide_project">Remove from home</string>
+    <string name="ui_hide_project_hint">Sessions and files are kept. Add this project again to restore it.</string>
+    <string name="ui_project_hidden">Project removed from home. Add it again to restore it.</string>
+    <string name="chat_turn_files">This turn · %1$d files</string>
+    <string name="chat_more_files">View %1$d more files</string>
+    <string name="chat_fewer_files">Show fewer files</string>
+    <string name="chat_show_diff">View changes to %1$s</string>
+    <string name="chat_full_diff">Show full diff · %1$d lines</string>
+    <string name="chat_copy_reply">Copy reply</string>
+    <string name="chat_share_reply">Share reply</string>
+    <string name="chat_share_unavailable">No sharing app is available. You can copy the reply.</string>
+    <string name="chat_message_placeholder">Message Codex</string>
+    <string name="chat_copy_long_reply">This reply is long. Use Share to save the complete file.</string>
+    <string name="ui_next_message_only">For your next message</string>
+    <string name="ui_image_unavailable">Image unavailable</string>
+    <string name="ui_load_image_preview" formatted="false">Load image preview</string>
+    <string name="ui_image_preview_loading" formatted="false">Loading image preview…</string>
+    <string name="ui_image_view" formatted="false">Image view</string>
+    <string name="ui_reset_image_zoom">Reset zoom</string>
+    <string name="ui_message_options">Model and reasoning</string>
+    <string name="ui_message_options_current">Message options: model %1$s, reasoning %2$s</string>
+    <string name="ui_project_expanded">Expanded</string>
+    <string name="ui_project_collapsed">Collapsed</string>
+    <string name="ui_output_receiving" formatted="false">Receiving response</string>
+    <string name="ui_output_reconciling" formatted="false">Reconciling with server</string>
+    <string name="ui_output_synced" formatted="false">Synced</string>
+    <string name="ui_output_waiting_to_sync" formatted="false">Waiting to sync</string>
+    <string name="ui_output_live" formatted="false">Live</string>
+    <string name="ui_output_events">%1$d events</string>
+    <string name="ui_output_commands">%1$d commands</string>
+    <string name="ui_output_files">%1$d files</string>
+    <string name="ui_output_images">%1$d images</string>
+    <string name="ui_output_more_events">+%1$d more</string>
+    <string name="ui_output_command_short" formatted="false">Command</string>
+    <string name="ui_output_files_short" formatted="false">Files</string>
+    <string name="ui_output_reasoning_short" formatted="false">Reasoning</string>
+    <string name="ui_output_plan_short" formatted="false">Plan</string>
+    <string name="ui_output_reply_short" formatted="false">Reply</string>
+    <string name="ui_output_event_short" formatted="false">Event</string>
+    <string name="ui_output_assistant" formatted="false">Codex</string>
+</resources>

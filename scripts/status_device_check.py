@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""Verify unopened-session status sync on a disposable emulator with local SSH/model fixtures."""
+import getpass
+import http.server
+import json
+import os
+from pathlib import Path
+import secrets
+import shutil
+import subprocess
+import threading
+import time
+from probe import ModelFixture
+from ssh_fixture import servers
+
+
+class DelayedAnswer(ModelFixture):
+    def do_POST(self):
+        self.rfile.read(int(self.headers.get('Content-Length', '0')))
+        time.sleep(20)
+        rid = 'resp_status_' + secrets.token_hex(4)
+        item = {'id': 'msg_' + rid, 'type': 'message', 'role': 'assistant', 'status': 'completed',
+                'content': [{'type': 'output_text', 'text': 'Local status sync fixture completed.', 'annotations': []}]}
+        events = [
+            {'type': 'response.created', 'response': {'id': rid, 'status': 'in_progress'}},
+            {'type': 'response.output_item.added', 'output_index': 0, 'item': item},
+            {'type': 'response.output_item.done', 'output_index': 0, 'item': item},
+            {'type': 'response.completed', 'response': {'id': rid, 'status': 'completed', 'output': [item],
+                'usage': {'input_tokens': 1, 'output_tokens': 1, 'total_tokens': 2}}},
+        ]
+        data = ''.join(f"event: {e['type']}\ndata: {json.dumps(e)}\n\n" for e in events).encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/event-stream')
+        self.send_header('Content-Length', str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+
+def main():
+    serial = os.environ.get('ANDROID_SERIAL', 'emulator-5570')
+    if not serial.startswith('emulator-'):
+        raise SystemExit('Use a disposable emulator; this resets the preview app.')
+    adb = [os.environ.get('ADB', 'adb'), '-s', serial]
+    package = 'dev.remotegpt.preview'
+    for apk in ['app/build/outputs/apk/debug/app-debug.apk', 'app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk']:
+        subprocess.run(adb + ['install', '-r', apk], check=True)
+    subprocess.run(adb + ['shell', 'pm', 'clear', package], check=True)
+    with servers() as fixture:
+        model = http.server.ThreadingHTTPServer(('127.0.0.1', 0), DelayedAnswer)
+        threading.Thread(target=model.serve_forever, daemon=True).start()
+        subprocess.run(adb + ['shell', 'run-as', package, 'mkdir', '-p', 'files'], check=True)
+        subprocess.run(adb + ['shell', 'run-as', package, 'sh', '-c', "'cat > files/device-test-key'"],
+                       input=Path(fixture['encrypted_ed25519']).read_bytes(), check=True)
+        try:
+            result = subprocess.run(adb + ['shell', 'am', 'instrument', '-w', '-r',
+                '-e', 'class', 'dev.remotegpt.app.SessionStatusDeviceTest',
+                '-e', 'statusFixturePort', str(model.server_port),
+                '-e', 'fixtureRoot', fixture['root'], '-e', 'sshPort', str(fixture['ports'][-1]),
+                '-e', 'sshUser', getpass.getuser(), '-e', 'fingerprint', fixture['fingerprint'],
+                '-e', 'codexPath', fixture["codex"], package + '.test/androidx.test.runner.AndroidJUnitRunner'],
+                text=True, capture_output=True, timeout=180)
+            print(result.stdout, flush=True)
+            if result.returncode or 'FAILURES!!!' in result.stdout or 'OK (' not in result.stdout:
+                raise SystemExit('Status synchronization verification failed')
+        finally:
+            subprocess.run(adb + ['shell', 'run-as', package, 'rm', '-f', 'files/device-test-key'], check=False)
+            model.shutdown()
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="68" height="68" viewBox="20 20 68 68" role="img" aria-labelledby="title description">
+    <title id="title">GHub</title>
+    <desc id="description">A rounded G connection path with a blue hub on a transparent background.</desc>
+    <path id="monogram" fill="none" stroke="#1C293D" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" d="M73 37C68 32 62 29 54 29H51C38 29 29 39 29 52V56C29 69 38 79 51 79H57C69 79 78 70 78 58V54H55" />
+    <path id="hub" fill="#4B6590" d="M60.75 54A5.75 5.75 0 1 1 49.25 54A5.75 5.75 0 1 1 60.75 54Z" />
+</svg>

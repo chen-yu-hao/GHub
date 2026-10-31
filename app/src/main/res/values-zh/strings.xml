@@ -1,0 +1,443 @@
+<resources>
+    <string name="ui_0_164_0_and_newer_0_x" formatted="false">0.164.0 及更新的 0.x 版本</string>
+    <string name="ui_keep_remote_connection_active" formatted="false">后台保持远程连接</string>
+    <string name="ui_stop_keeping_alive" formatted="false">停止保持</string>
+    <string name="ui_background_connection" formatted="false">后台连接</string>
+    <string name="ui_keep_ssh_and_codex_sessions_connected" formatted="false">保持远程 SSH 与 Codex 会话连接</string>
+    <string name="ui_speech_recognition_is_unavailable_you_can_use" formatted="false">设备没有可用的语音识别服务，可使用键盘的语音输入。 </string>
+    <string name="ui_no_speech_detected_please_try_again" formatted="false">没有识别到内容，请重试。</string>
+    <string name="ui_microphone_permission_is_required_for_voice_input" formatted="false">需要麦克风权限才能使用语音输入。</string>
+    <string name="ui_speech_recognition_is_unavailable_please_use_the" formatted="false">语音识别暂不可用，可使用键盘输入。</string>
+    <string name="ui_root_directory" formatted="false">根目录</string>
+    <string name="ui_ungrouped" formatted="false">未分组</string>
+    <string name="ui_cannot_read_or_write_local_data_check" formatted="false">无法读写本地数据，请检查可用空间。当前内存中的草稿仍保留，暂勿关闭应用。</string>
+    <string name="ui_enter_an_absolute_remote_directory" formatted="false">请输入远端绝对目录</string>
+    <string name="ui_enter_a_connection_name" formatted="false">请输入连接名称</string>
+    <string name="ui_enter_the_codex_executable_path" formatted="false">请填写 Codex 可执行文件路径</string>
+    <string name="ui_enter_a_host_username_and_valid_port" formatted="false">请填写主机、用户名和有效端口</string>
+    <string name="ui_connection_saved" formatted="false">连接配置已保存</string>
+    <string name="ui_save_failed" formatted="false">保存失败</string>
+    <string name="ui_unknown" formatted="false">未知</string>
+    <string name="ui_unsupported_cli_version_the_minimum_is_the">CLI 版本不受支持：%1$s。最低兼容基线为 %2$s，不会自动升级或降级远端。</string>
+    <string name="ui_app_server_did_not_report_a_version">App Server 未报告版本。最低兼容基线为 %1$s，不会自动升级或降级远端。</string>
+    <string name="ui_unsupported_app_server_version_the_minimum_is">App Server 版本不受支持：%1$s。最低兼容基线为 %2$s，不会自动升级或降级远端。</string>
+    <string name="ui_the_socket_did_not_report_a_supported">所连接的 Socket 未报告可识别的兼容 App Server 版本：%1$s。最低兼容基线为 %2$s。</string>
+    <string name="ui_custom_model_provider" formatted="false">自定义模型提供方</string>
+    <string name="ui_run_codex_login_on_the_server_first" formatted="false">请先在远端运行 codex login</string>
+    <string name="ui_the_server_is_connected_but_session_sync" formatted="false">主机连接正常，但会话同步被拒绝。请切换会话，或重试同步。</string>
+    <string name="ui_this_client_cannot_handle_no_permission_was">此客户端尚不支持 %1$s，未授予任何权限。请在 CLI 处理。</string>
+    <string name="ui_output_processing_is_behind_restoring_the_session" formatted="false">输出处理积压，正在恢复会话。</string>
+    <string name="ui_connection_heartbeat_timed_out_reconnecting" formatted="false">连接心跳超时，正在重新连接。</string>
+    <string name="ui_the_remote_proxy_closed_reconnecting" formatted="false">远端代理连接已关闭，正在重新连接。</string>
+    <string name="ui_connection_interrupted_restoring_the_original_session" formatted="false">连接暂时中断，正在恢复原会话。</string>
+    <string name="ui_local_session_cache_was_too_large_and" formatted="false">本地会话缓存过大，已清理缓存；正在从远端重新同步。</string>
+    <string name="ui_ssh_authentication_failed_check_the_username_key" formatted="false">SSH 认证失败，请检查用户名、私钥、口令或服务器认证方式。</string>
+    <string name="ui_ssh_connection_failed_check_the_host_fingerprint" formatted="false">SSH 连接失败，请核对主机指纹、网络和跳板机配置。</string>
+    <string name="ui_operation_failed_check_the_connection_and_try" formatted="false">操作失败，请检查连接后重试。</string>
+    <string name="ui_you_can_continue_after_reconnecting_your_draft" formatted="false">连接恢复后即可继续操作，草稿已保留。</string>
+    <string name="ui_remote_files_are_temporarily_unavailable_please_try" formatted="false">远程文件连接暂时不可用，请稍后重试。</string>
+    <string name="ui_choose_a_valid_remote_project_directory_first" formatted="false">请先选择有效的远端项目目录。</string>
+    <string name="ui_the_server_is_not_connected_reconnect_before" formatted="false">尚未连接服务器，请等待连接恢复后再新建会话。</string>
+    <string name="ui_session_created_open_it_from_the_project" formatted="false">会话已创建，请在连接恢复后从项目列表打开。</string>
+    <string name="ui_session_creation_is_unconfirmed_reconnect_and_check" formatted="false">新建结果待确认。请恢复连接并核对项目中的会话，暂勿重复新建。</string>
+    <string name="ui_could_not_create_session">新建会话失败：%1$s</string>
+    <string name="ui_could_not_restore_this_session">暂时无法恢复此会话：%1$s</string>
+    <string name="ui_cannot_verify_that_the_local_record_is" formatted="false">无法确认本地记录为空，已保留记录。</string>
+    <string name="ui_this_session_still_has_local_content_its" formatted="false">此会话仍有本地内容，已保留记录。</string>
+    <string name="ui_empty_local_record_removed" formatted="false">已移除本地空记录。</string>
+    <string name="ui_upload_interrupted_select_the_file_again" formatted="false">上传已中断，请重新选择文件</string>
+    <string name="ui_this_session_is_running_or_waiting_for" formatted="false">会话正在运行或等待审批，请结束后再归档。</string>
+    <string name="ui_the_original_server_is_disconnected_reconnect_and" formatted="false">原服务器未连接，请连接后在已归档列表中恢复会话。</string>
+    <string name="ui_restore_this_session_before_sending_your_draft" formatted="false">请先恢复会话后再发送，草稿已保留。</string>
+    <string name="ui_attachment">附件：%1$s</string>
+    <string name="ui_the_current_model_does_not_support_this" formatted="false">当前模型不支持此思考级别，请重新选择。</string>
+    <string name="ui_message_sent_restoring_session_state_please_do" formatted="false">消息已发送，正在恢复会话状态，请勿重复发送。</string>
+    <string name="ui_file_saved" formatted="false">文件已保存</string>
+    <string name="ui_choose_a_session_first" formatted="false">请先选择一个会话</string>
+    <string name="ui_select_a_session_first" formatted="false">请先选择会话</string>
+    <string name="ui_image" formatted="false">图片</string>
+    <string name="ui_attachment_57" formatted="false">附件</string>
+    <string name="ui_remote_files_are_temporarily_unavailable" formatted="false">远程文件连接暂时不可用</string>
+    <string name="ui_cannot_determine_the_session_working_directory" formatted="false">无法确定会话工作目录</string>
+    <string name="ui_cannot_open_file" formatted="false">无法打开文件</string>
+    <string name="ui_cannot_open_the_save_location" formatted="false">无法打开保存位置</string>
+    <string name="ui_download_complete" formatted="false">下载完成</string>
+    <string name="ui_terminal_input_is_too_fast_please_try" formatted="false">终端输入过快，请稍后重试</string>
+    <string name="ui_terminal">终端 %1$s</string>
+    <string name="ui_local_session_cache_cleared_drafts_are_preserved" formatted="false">本地会话缓存已清除，草稿已保留；可重新同步远端会话</string>
+    <string name="ui_diagnostics_exported_without_credentials_or_message_content" formatted="false">诊断记录已导出，不包含凭据或会话正文</string>
+    <string name="ui_could_not_export_diagnostics_choose_a_writable" formatted="false">诊断导出失败，请重新选择可写入的位置。</string>
+    <string name="ui_could_not_save_credentials" formatted="false">凭据保存失败</string>
+    <string name="ui_cannot_read_credentials_import_them_again" formatted="false">凭据无法读取，请重新导入</string>
+    <string name="ui_could_not_remove_credentials" formatted="false">凭据删除失败</string>
+    <string name="ui_copied" formatted="false">已复制</string>
+    <string name="ui_copy" formatted="false">复制</string>
+    <string name="ui_code" formatted="false">代码</string>
+    <string name="ui_collapse_code" formatted="false">收起代码</string>
+    <string name="ui_show_full_code_lines">展开完整代码（%1$s 行）</string>
+    <string name="ui_expand_table" formatted="false">展开表格</string>
+    <string name="ui_swipe_sideways_to_view" formatted="false">左右滑动查看</string>
+    <string name="ui_collapse_table" formatted="false">收起表格</string>
+    <string name="ui_show_all_rows">显示全部 %1$s 行</string>
+    <string name="ui_table" formatted="false">表格</string>
+    <string name="ui_back_to_session" formatted="false">返回会话</string>
+    <string name="ui_collapse_details" formatted="false">折叠详情</string>
+    <string name="ui_expand_details" formatted="false">展开详情</string>
+    <string name="ui_file_changes" formatted="false">文件改动</string>
+    <string name="ui_command_execution" formatted="false">命令执行</string>
+    <string name="ui_execution_plan" formatted="false">执行计划</string>
+    <string name="ui_reasoning_summary" formatted="false">思考摘要</string>
+    <string name="ui_collapse" formatted="false">折叠</string>
+    <string name="ui_expand" formatted="false">展开</string>
+    <string name="ui_running" formatted="false">正在执行…</string>
+    <string name="ui_image_attachment" formatted="false">图片附件</string>
+    <string name="ui_view_image">查看图片 %1$s</string>
+    <string name="ui_approval_required" formatted="false">需要你的确认</string>
+    <string name="ui_codex_is_requesting_permission_to_modify_files" formatted="false">Codex 请求修改文件。</string>
+    <string name="ui_working_directory">工作目录：%1$s</string>
+    <string name="ui_requested_write_scope">请求写入范围：%1$s</string>
+    <string name="ui_network_access">网络访问：%1$s</string>
+    <string name="ui_permission_applies_to_this_operation_only_no" formatted="false">仅授权当前操作；不会保存永久规则。</string>
+    <string name="ui_submitted_waiting_for_server_confirmation" formatted="false">已提交，等待服务端确认…</string>
+    <string name="ui_allow_once" formatted="false">允许一次</string>
+    <string name="ui_reject" formatted="false">拒绝</string>
+    <string name="ui_cancel" formatted="false">取消</string>
+    <string name="ui_check_connection_recovery_and_avoid_duplicate_messages" formatted="false">检查连接恢复逻辑，避免重复发送消息。</string>
+    <string name="ui_found_the_connection_recovery_logic_n_ni" formatted="false">已找到连接中断后的状态处理。\n\n我会先核对服务端，再恢复会话。</string>
+    <string name="ui_project_directory" formatted="false">项目目录</string>
+    <string name="ui_connecting_to_remote_files" formatted="false">正在连接远程文件</string>
+    <string name="ui_this_directory_will_load_automatically_when_the" formatted="false">连接恢复后会自动加载当前目录，请稍候。</string>
+    <string name="ui_this_directory_is_empty" formatted="false">目录中没有文件</string>
+    <string name="ui_connect_to_browse_files_edit_text_or" formatted="false">连接主机后可以浏览目录、编辑文本或把文件附加到会话。</string>
+    <string name="ui_folder" formatted="false">文件夹</string>
+    <string name="ui_actions_for">%1$s 的操作</string>
+    <string name="ui_directory" formatted="false">目录</string>
+    <string name="ui_parent_directory" formatted="false">上级目录</string>
+    <string name="ui_open_directory" formatted="false">打开目录</string>
+    <string name="ui_project_root" formatted="false">返回项目根目录</string>
+    <string name="ui_refresh_directory" formatted="false">刷新目录</string>
+    <string name="ui_open_remote_directory" formatted="false">打开远端目录</string>
+    <string name="ui_absolute_path" formatted="false">绝对路径</string>
+    <string name="ui_image_119">图片 · %1$s</string>
+    <string name="ui_preview_image" formatted="false">预览图片</string>
+    <string name="ui_edit_text" formatted="false">编辑文本</string>
+    <string name="ui_attach_to_this_session" formatted="false">附加到当前会话</string>
+    <string name="ui_download_to_device" formatted="false">下载到手机</string>
+    <string name="ui_back_to_files" formatted="false">返回文件</string>
+    <string name="ui_save" formatted="false">保存</string>
+    <string name="ui_remote_file_changed" formatted="false">远端文件已更新</string>
+    <string name="ui_the_file_changed_after_you_opened_it" formatted="false">文件在打开后被其他程序修改。请选择重新加载，或用当前内容覆盖。</string>
+    <string name="ui_overwrite_remote_file" formatted="false">覆盖远端</string>
+    <string name="ui_reload" formatted="false">重新加载</string>
+    <string name="ui_discard_unsaved_changes" formatted="false">放弃未保存的修改？</string>
+    <string name="ui_discard_changes" formatted="false">放弃修改</string>
+    <string name="ui_keep_editing" formatted="false">继续编辑</string>
+    <string name="ui_saved_credentials_cannot_be_decrypted_import_them" formatted="false">保存的凭据无法解密，请重新导入。</string>
+    <string name="ui_cannot_read_private_key" formatted="false">无法读取私钥</string>
+    <string name="ui_select_a_private_key_not_a_pub" formatted="false">请选择私钥文件，而不是 .pub 公钥文件。</string>
+    <string name="ui_server_connection" formatted="false">服务器连接</string>
+    <string name="ui_back_to_servers" formatted="false">返回服务器</string>
+    <string name="ui_could_not_save_check_local_storage_and" formatted="false">保存失败，请检查本地存储与凭据后重试。</string>
+    <string name="ui_saving" formatted="false">正在保存…</string>
+    <string name="ui_save_connection" formatted="false">保存配置</string>
+    <string name="ui_connection_name" formatted="false">连接名称</string>
+    <string name="ui_for_example_development_server" formatted="false">例如：开发服务器</string>
+    <string name="ui_target_host" formatted="false">目标主机</string>
+    <string name="ui_advanced_settings" formatted="false">高级配置</string>
+    <string name="ui_hide_jump_hosts_and_codex_settings" formatted="false">收起跳板机与 Codex 配置</string>
+    <string name="ui_jump_hosts_codex_path_and_working_directory" formatted="false">跳板机、Codex 路径与默认工作目录</string>
+    <string name="ui_jump_hosts" formatted="false">跳板机</string>
+    <string name="ui_add_hosts_in_connection_order_each_host" formatted="false">按连接顺序添加，每一级独立认证。</string>
+    <string name="ui_hop">第 %1$s 级</string>
+    <string name="ui_remove_jump_host" formatted="false">移除此跳板机</string>
+    <string name="ui_add_jump_host" formatted="false">添加跳板机</string>
+    <string name="ui_remote_codex" formatted="false">远端 Codex</string>
+    <string name="ui_executable_path" formatted="false">可执行文件路径</string>
+    <string name="ui_for_example_codex_or_home_user_local" formatted="false">例如 codex 或 /home/user/.local/bin/codex</string>
+    <string name="ui_default_working_directory" formatted="false">默认工作目录</string>
+    <string name="ui_service_socket_path_optional" formatted="false">服务 Socket 路径（可选）</string>
+    <string name="ui_leave_empty_to_use_the_default_shared" formatted="false">留空使用官方默认共享服务。</string>
+    <string name="ui_credentials_are_encrypted_on_this_device_host" formatted="false">凭据在本机加密保存，不会上传到其他服务。主机指纹将在连接时核对。</string>
+    <string name="ui_delete_server_connection" formatted="false">删除此服务器配置</string>
+    <string name="ui_delete_server_connection_160" formatted="false">删除服务器配置？</string>
+    <string name="ui_this_removes_the_connection_and_credentials_saved" formatted="false">只删除手机保存的连接配置和凭据，远端会话会保留。</string>
+    <string name="ui_delete" formatted="false">删除</string>
+    <string name="ui_host_address" formatted="false">主机地址</string>
+    <string name="ui_username" formatted="false">用户名</string>
+    <string name="ui_port" formatted="false">端口</string>
+    <string name="ui_private_key" formatted="false">私钥</string>
+    <string name="ui_password" formatted="false">密码</string>
+    <string name="ui_interactive_authentication" formatted="false">交互认证</string>
+    <string name="ui_import_private_key" formatted="false">导入私钥文件</string>
+    <string name="ui_key_imported_replace" formatted="false">私钥已导入 · 更换</string>
+    <string name="ui_key_passphrase_optional" formatted="false">私钥口令（可选）</string>
+    <string name="ui_ssh_password" formatted="false">SSH 密码</string>
+    <string name="ui_enter_the_password_or_verification_code_requested" formatted="false">连接时填写服务器要求的密码或验证码。</string>
+    <string name="ui_verify_host_identity" formatted="false">确认主机身份</string>
+    <string name="ui_host_fingerprint_changed" formatted="false">主机指纹已变化</string>
+    <string name="ui_previous_nverify_this_change_through_a_trusted">之前：%1$s\n请通过可信渠道核实变化原因，再更新信任。</string>
+    <string name="ui_compare_this_fingerprint_with_one_provided_by" formatted="false">请与服务器提供的指纹核对。确认后会记住此主机。</string>
+    <string name="ui_trust_and_connect" formatted="false">信任并连接</string>
+    <string name="ui_verified_update_trust" formatted="false">已核实，更新信任</string>
+    <string name="ui_ssh_authentication" formatted="false">SSH 认证</string>
+    <string name="ui_continue" formatted="false">继续</string>
+    <string name="ui_cannot_read_the_license_try_again_or" formatted="false">无法读取许可文件，请重试或查看项目源码中的 licenses 目录。</string>
+    <string name="ui_close" formatted="false">关闭</string>
+    <string name="ui_back" formatted="false">返回</string>
+    <string name="ui_open_source_licenses" formatted="false">开源许可</string>
+    <string name="ui_settings" formatted="false">设置</string>
+    <string name="ui_connection" formatted="false">连接</string>
+    <string name="ui_servers" formatted="false">服务器</string>
+    <string name="ui_servers_189">%1$s 台</string>
+    <string name="ui_ssh_connections_keys_and_jump_hosts" formatted="false">SSH 连接、密钥与跳板机</string>
+    <string name="ui_keep_connected_in_background" formatted="false">后台保持连接</string>
+    <string name="ui_show_an_ongoing_notification_and_keep_ssh" formatted="false">显示常驻通知，保持 SSH 与 Codex 事件连接</string>
+    <string name="ui_reconnect_when_needed_to_save_battery" formatted="false">切到后台后按需恢复，省电</string>
+    <string name="ui_application" formatted="false">应用</string>
+    <string name="ui_appearance" formatted="false">外观</string>
+    <string name="ui_light" formatted="false">浅色</string>
+    <string name="ui_dark" formatted="false">深色</string>
+    <string name="ui_system_default" formatted="false">跟随系统</string>
+    <string name="ui_data_and_diagnostics" formatted="false">数据与诊断</string>
+    <string name="ui_cache_diagnostic_logs_and_licenses" formatted="false">缓存、诊断记录与开源许可</string>
+    <string name="ui_no_telemetry_by_default_tasks_run_on" formatted="false">默认无遥测。任务在远端运行。</string>
+    <string name="ui_theme" formatted="false">主题</string>
+    <string name="ui_local_data" formatted="false">本地数据</string>
+    <string name="ui_clear_session_cache" formatted="false">清除会话缓存</string>
+    <string name="ui_keep_drafts_server_connections_and_remote_sessions" formatted="false">保留草稿、主机配置和远端会话</string>
+    <string name="ui_help_and_diagnostics" formatted="false">帮助与诊断</string>
+    <string name="ui_export_diagnostics" formatted="false">导出诊断记录</string>
+    <string name="ui_excludes_keys_passwords_and_message_content" formatted="false">不包含密钥、口令或对话正文</string>
+    <string name="ui_clear_local_session_cache" formatted="false">清除本地会话缓存？</string>
+    <string name="ui_drafts_connections_and_remote_sessions_are_kept" formatted="false">草稿、连接配置和远端会话会保留。历史消息可在连接后重新同步。</string>
+    <string name="ui_clear_cache" formatted="false">清除缓存</string>
+    <string name="ui_add_server" formatted="false">添加服务器</string>
+    <string name="ui_add_an_ssh_connection_to_access_projects" formatted="false">添加远端服务器的 SSH 连接，即可访问项目、文件和终端。</string>
+    <string name="ui_switch_server" formatted="false">切换服务器</string>
+    <string name="ui_no_server_connections_yet" formatted="false">还没有服务器配置</string>
+    <string name="ui_edit_connection" formatted="false">编辑配置</string>
+    <string name="ui_open_projects" formatted="false">打开项目</string>
+    <string name="ui_disconnect" formatted="false">断开连接</string>
+    <string name="ui_connect" formatted="false">连接主机</string>
+    <string name="ui_status" formatted="false">状态</string>
+    <string name="ui_address" formatted="false">地址</string>
+    <string name="ui_direct_connection" formatted="false">直连</string>
+    <string name="ui_hops">%1$s 级</string>
+    <string name="ui_remote_environment" formatted="false">远端环境</string>
+    <string name="ui_codex_account" formatted="false">Codex 登录</string>
+    <string name="ui_available_after_connecting" formatted="false">连接后读取</string>
+    <string name="ui_not_loaded" formatted="false">未读取</string>
+    <string name="ui_app_server" formatted="false">应用服务（App Server）</string>
+    <string name="ui_choose_model" formatted="false">选择模型</string>
+    <string name="ui_choose_model_current">选择模型：%1$s</string>
+    <string name="ui_reasoning">思考 · %1$s</string>
+    <string name="ui_uploading" formatted="false">上传中</string>
+    <string name="ui_ready" formatted="false">已就绪</string>
+    <string name="ui_upload_failed" formatted="false">上传失败</string>
+    <string name="ui_remove_attachment">移除附件 %1$s</string>
+    <string name="ui_message_input" formatted="false">消息输入框</string>
+    <string name="ui_listening" formatted="false">正在听…</string>
+    <string name="ui_describe_a_task_or_ask_a_follow" formatted="false">描述任务，或继续提问…</string>
+    <string name="ui_add_attachment" formatted="false">添加附件</string>
+    <string name="ui_stop_voice_input" formatted="false">停止语音输入</string>
+    <string name="ui_voice_input" formatted="false">语音转文字</string>
+    <string name="ui_stop_task" formatted="false">停止任务</string>
+    <string name="ui_send_message" formatted="false">发送消息</string>
+    <string name="ui_input_options" formatted="false">输入选项</string>
+    <string name="ui_choose_image" formatted="false">选择图片</string>
+    <string name="ui_take_photo" formatted="false">拍照</string>
+    <string name="ui_choose_file" formatted="false">选择文件</string>
+    <string name="ui_use_session_settings" formatted="false">跟随会话</string>
+    <string name="ui_no_models_loaded_connect_to_the_server" formatted="false">暂未获取到可用模型，请连接服务器后重试。</string>
+    <string name="ui_reload_models" formatted="false">重新获取模型</string>
+    <string name="ui_reasoning_level" formatted="false">思考级别</string>
+    <string name="ui_reasoning_level_current">思考级别：%1$s</string>
+    <string name="ui_this_model_does_not_offer_adjustable_reasoning" formatted="false">当前模型未提供可调整的思考级别。</string>
+    <string name="ui_minimal" formatted="false">最少</string>
+    <string name="ui_low" formatted="false">低</string>
+    <string name="ui_medium" formatted="false">中</string>
+    <string name="ui_high" formatted="false">高</string>
+    <string name="ui_extra_high" formatted="false">更高</string>
+    <string name="ui_maximum" formatted="false">最高</string>
+    <string name="ui_ultra" formatted="false">极高</string>
+    <string name="ui_default" formatted="false">默认</string>
+    <string name="ui_archived_sessions" formatted="false">归档会话</string>
+    <string name="ui_projects" formatted="false">项目</string>
+    <string name="ui_back_to_recent" formatted="false">返回最近</string>
+    <string name="ui_archived" formatted="false">已归档</string>
+    <string name="ui_add_your_project" formatted="false">添加你的项目</string>
+    <string name="ui_choose_a_remote_working_directory_to_start" formatted="false">选择远端工作目录，开始一个会话。</string>
+    <string name="ui_add_project" formatted="false">添加项目</string>
+    <string name="ui_collapse_269" formatted="false">收起</string>
+    <string name="ui_approval_needed">待确认 · %1$s</string>
+    <string name="ui_completed">完成 · %1$s</string>
+    <string name="ui_running_272" formatted="false">运行中</string>
+    <string name="ui_actions_for_project">%1$s的项目操作</string>
+    <string name="ui_archiving" formatted="false">归档中</string>
+    <string name="ui_unavailable" formatted="false">无法恢复</string>
+    <string name="ui_approval_needed_276" formatted="false">待确认</string>
+    <string name="ui_new_result" formatted="false">新结果</string>
+    <string name="ui_creating" formatted="false">正在新建…</string>
+    <string name="ui_new_session" formatted="false">新会话</string>
+    <string name="ui_view_all" formatted="false">查看全部</string>
+    <string name="ui_load_earlier" formatted="false">加载更早</string>
+    <string name="ui_collapse_list" formatted="false">收起列表</string>
+    <string name="ui_you_can_load_earlier_sessions" formatted="false">可继续加载较早的会话</string>
+    <string name="ui_no_sessions_yet" formatted="false">暂无会话</string>
+    <string name="ui_load_more_projects_and_sessions" formatted="false">加载更多项目与会话</string>
+    <string name="ui_workspace" formatted="false">工作区</string>
+    <string name="ui_return_to_current_session" formatted="false">返回当前会话</string>
+    <string name="ui_back_to_projects" formatted="false">返回项目列表</string>
+    <string name="ui_files" formatted="false">文件</string>
+    <string name="ui_terminal_290" formatted="false">终端</string>
+    <string name="ui_choose_project" formatted="false">选择项目</string>
+    <string name="ui_switch_project" formatted="false">切换项目</string>
+    <string name="ui_refresh" formatted="false">刷新</string>
+    <string name="ui_selected" formatted="false">已选择</string>
+    <string name="ui_project_name_optional" formatted="false">项目名称（可选）</string>
+    <string name="ui_remote_working_directory" formatted="false">远端工作目录</string>
+    <string name="ui_session_not_found_on_server" formatted="false">远端未找到此会话</string>
+    <string name="ui_could_not_restore_session" formatted="false">会话恢复失败</string>
+    <string name="ui_check_again" formatted="false">重新检查</string>
+    <string name="ui_back_to_project" formatted="false">返回项目</string>
+    <string name="ui_remove_empty_local_record" formatted="false">移除本地空记录</string>
+    <string name="ui_load_earlier_messages" formatted="false">加载更早的消息</string>
+    <string name="ui_ready_to_start" formatted="false">准备好开始了</string>
+    <string name="ui_describe_your_task_or_attach_relevant_files" formatted="false">描述你想完成的任务，或附上相关文件。</string>
+    <string name="ui_this_turn_failed_check_the_execution_details" formatted="false">本轮任务执行失败，请查看执行记录。</string>
+    <string name="ui_this_turn_was_interrupted" formatted="false">本轮任务已中断。</string>
+    <string name="ui_waiting_for_approval" formatted="false">等待确认</string>
+    <string name="ui_codex_is_working" formatted="false">Codex 正在处理</string>
+    <string name="ui_task_completed_view_latest" formatted="false">任务已完成 · 查看最新</string>
+    <string name="ui_new_messages_view_latest" formatted="false">新消息 · 查看最新</string>
+    <string name="ui_latest" formatted="false">最新</string>
+    <string name="ui_this_session_is_archived_restore_it_to" formatted="false">此会话已归档，恢复后可以继续发送消息。</string>
+    <string name="ui_restore_session" formatted="false">恢复会话</string>
+    <string name="ui_your_last_message_has_an_unconfirmed_delivery" formatted="false">上次发送状态待确认。请同步并核对历史，避免重复执行。</string>
+    <string name="ui_history_checked_unlock_draft" formatted="false">已核对，解锁草稿</string>
+    <string name="ui_rename_session" formatted="false">重命名会话</string>
+    <string name="ui_name" formatted="false">名称</string>
+    <string name="ui_have_you_checked_the_remote_history" formatted="false">已核对远端历史？</string>
+    <string name="ui_unlocking_only_restores_draft_editing_it_does" formatted="false">解锁只会恢复草稿编辑，不会自动重发。如果远端已收到消息，请删除重复草稿内容。</string>
+    <string name="ui_unlock_draft" formatted="false">解锁草稿</string>
+    <string name="ui_session_options" formatted="false">会话选项</string>
+    <string name="ui_project_files" formatted="false">项目文件</string>
+    <string name="ui_sync_session" formatted="false">同步会话</string>
+    <string name="ui_rename" formatted="false">重命名</string>
+    <string name="ui_archive" formatted="false">归档</string>
+    <string name="ui_open_remote_terminal" formatted="false">打开远端终端</string>
+    <string name="ui_supports_vim_tmux_and_common_terminal_programs" formatted="false">支持 vim、tmux 和常见终端程序。使用远端 tmux 可保留断线前的工作。</string>
+    <string name="ui_new_terminal" formatted="false">新终端</string>
+    <string name="ui_ssh_terminal" formatted="false">SSH 交互终端</string>
+    <string name="ui_close_330">关闭 %1$s</string>
+    <string name="ui_paste" formatted="false">粘贴</string>
+    <string name="ui_show_keyboard" formatted="false">显示键盘</string>
+    <string name="ui_new_terminal_session" formatted="false">新建终端</string>
+    <string name="ui_decrease_terminal_text_size" formatted="false">缩小终端文字</string>
+    <string name="ui_increase_terminal_text_size" formatted="false">放大终端文字</string>
+    <string name="ui_terminal_disconnected_reconnect_and_use_tmux_to" formatted="false">终端已断开。可新建连接后使用 tmux 恢复远端工作。</string>
+    <string name="ui_close_terminal" formatted="false">关闭终端？</string>
+    <string name="ui_programs_in_a_regular_shell_may_stop" formatted="false">普通 shell 中的程序可能随连接关闭。tmux 会话可在远端继续运行。</string>
+    <string name="ui_close_terminal_339" formatted="false">关闭终端</string>
+    <string name="ui_collapse_execution_details" formatted="false">收起执行过程</string>
+    <string name="ui_view_execution_details" formatted="false">查看执行过程</string>
+    <string name="ui_failed_operations_view_details">%1$s 项执行失败 · 查看过程</string>
+    <string name="ui_execution_details_includes_unsupported_types" formatted="false">执行记录 · 包含暂不支持的类型</string>
+    <string name="ui_working_events">正在处理 · %1$s 条执行记录</string>
+    <string name="ui_commands_run_view_details">已执行 %1$s 条命令 · 查看过程</string>
+    <string name="ui_events_view_details">%1$s 条执行记录 · 查看过程</string>
+    <string name="ui_file_changes_failed" formatted="false">文件修改失败</string>
+    <string name="ui_files_changed">修改 %1$s 个文件</string>
+    <string name="ui_file_change_details" formatted="false">文件修改记录</string>
+    <string name="ui_the_server_did_not_provide_a_diff" formatted="false">服务端未提供 diff</string>
+    <string name="ui_microphone_permission_was_denied_you_can_continue" formatted="false">麦克风权限未开启，可继续使用键盘输入。</string>
+    <string name="ui_notification_permission_is_required_to_display_background" formatted="false">需要通知权限才能显示后台连接状态。</string>
+    <string name="ui_archived_353">已归档：%1$s</string>
+    <string name="ui_undo" formatted="false">撤销</string>
+    <string name="ui_cannot_keep_the_connection_active_check_notification" formatted="false">无法开启后台保持连接，请检查系统通知权限。</string>
+    <string name="ui_sessions" formatted="false">会话</string>
+    <string name="ui_more_actions" formatted="false">更多操作</string>
+    <string name="ui_connect_your_development_machine" formatted="false">连接你的开发机</string>
+    <string name="ui_continue_codex_sessions_and_browse_files_and" formatted="false">在手机上接续 Codex 会话，查看文件与运行状态。</string>
+    <string name="ui_open_settings" formatted="false">打开设置</string>
+    <string name="ui_still_reconnecting_remote_tasks_are_not_interrupted" formatted="false">仍在尝试恢复，远端任务不会因此中断。</string>
+    <string name="ui_retry_now" formatted="false">立即重试</string>
+    <string name="ui_establishing_a_secure_connection" formatted="false">正在建立安全连接…</string>
+    <string name="ui_connect_to_continue_local_drafts_are_preserved" formatted="false">连接主机后继续工作，本地草稿已保留。</string>
+    <string name="ui_cancel_connection" formatted="false">取消连接</string>
+    <string name="ui_set_up_background_service" formatted="false">配置常驻服务</string>
+    <string name="ui_no_camera_app_found_choose_an_image" formatted="false">未找到相机应用，请从相册选择图片。</string>
+    <string name="ui_create_session" formatted="false">新建会话</string>
+    <string name="ui_rename_project" formatted="false">重命名项目</string>
+    <string name="ui_project_name" formatted="false">项目名称</string>
+    <string name="ui_set_up_the_official_daemon" formatted="false">配置官方常驻服务</string>
+    <string name="ui_this_runs_codex_app_server_daemon_bootstrap" formatted="false">将在当前主机运行 codex app-server daemon bootstrap，安装官方服务管理配置。不会升级 Codex，也不会停止已有任务。</string>
+    <string name="ui_set_up_and_connect" formatted="false">配置并连接</string>
+    <string name="ui_image_preview" formatted="false">图片预览</string>
+    <string name="ui_remote_image_preview" formatted="false">远端图片预览</string>
+    <string name="ui_paste_into_the_remote_terminal" formatted="false">粘贴到远端终端？</string>
+    <string name="ui_copy_terminal_content" formatted="false">复制终端内容？</string>
+    <string name="ui_clipboard_content_will_be_sent_to_the" formatted="false">剪贴板内容将发送到当前 SSH 终端。</string>
+    <string name="ui_confirm" formatted="false">确认</string>
+    <string name="ui_ok" formatted="false">确定</string>
+    <string name="ui_connected" formatted="false">已连接</string>
+    <string name="ui_connecting" formatted="false">连接中</string>
+    <string name="ui_checking_connection" formatted="false">正在确认连接</string>
+    <string name="ui_waiting_for_network" formatted="false">等待网络恢复</string>
+    <string name="ui_reconnecting" formatted="false">正在恢复连接</string>
+    <string name="ui_syncing_sessions" formatted="false">正在同步会话</string>
+    <string name="ui_needs_attention" formatted="false">需要处理</string>
+    <string name="ui_disconnected" formatted="false">未连接</string>
+    <string name="ui_language">语言</string>
+    <string name="ui_off">关闭</string>
+    <string name="ui_archive_session">归档会话</string>
+    <string name="ui_model_default">模型默认</string>
+    <string name="ui_uncertain_delivery">发送状态待确认，请核对会话历史，不要重复发送。</string>
+    <string name="ui_thread_unavailable_detail">远端找不到此会话，可能创建未完成或记录已失效。手机上的草稿和缓存仍保留。</string>
+    <string name="task_running">运行中</string>
+    <string name="task_completed">已完成</string>
+    <string name="task_failed">执行失败</string>
+    <string name="task_interrupted">已中断</string>
+    <string name="task_unknown">状态待确认</string>
+    <string name="task_failed_count">失败 · %1$s</string>
+    <string name="ui_hide_project">从首页移除</string>
+    <string name="ui_hide_project_hint">保留会话和文件，可通过添加项目恢复。</string>
+    <string name="ui_project_hidden">已从首页移除，可通过添加项目恢复。</string>
+    <string name="chat_turn_files">本轮更改 %1$d 个文件</string>
+    <string name="chat_more_files">查看另外 %1$d 个文件</string>
+    <string name="chat_fewer_files">收起文件列表</string>
+    <string name="chat_show_diff">查看 %1$s 的改动</string>
+    <string name="chat_full_diff">查看完整 diff · %1$d 行</string>
+    <string name="chat_copy_reply">复制回复</string>
+    <string name="chat_share_reply">分享回复</string>
+    <string name="chat_share_unavailable">没有可用的分享应用，可以复制回复。</string>
+    <string name="chat_message_placeholder">输入消息</string>
+    <string name="chat_copy_long_reply">回复较长，请通过分享保存完整文件。</string>
+    <string name="ui_next_message_only">用于下一条消息</string>
+    <string name="ui_image_unavailable">图片无法显示</string>
+    <string name="ui_load_image_preview" formatted="false">加载图片预览</string>
+    <string name="ui_image_preview_loading" formatted="false">正在加载图片预览…</string>
+    <string name="ui_image_view" formatted="false">图片查看</string>
+    <string name="ui_reset_image_zoom">重置缩放</string>
+    <string name="ui_message_options">模型与思考</string>
+    <string name="ui_message_options_current">消息选项：模型 %1$s，思考 %2$s</string>
+    <string name="ui_project_expanded">已展开</string>
+    <string name="ui_project_collapsed">已收起</string>
+    <string name="ui_output_receiving" formatted="false">正在接收回复</string>
+    <string name="ui_output_reconciling" formatted="false">正在与服务端对齐</string>
+    <string name="ui_output_synced" formatted="false">已同步</string>
+    <string name="ui_output_waiting_to_sync" formatted="false">等待同步</string>
+    <string name="ui_output_live" formatted="false">实时</string>
+    <string name="ui_output_events">%1$d 条记录</string>
+    <string name="ui_output_commands">%1$d 条命令</string>
+    <string name="ui_output_files">%1$d 个文件</string>
+    <string name="ui_output_images">%1$d 张图片</string>
+    <string name="ui_output_more_events">另有 %1$d 条</string>
+    <string name="ui_output_command_short" formatted="false">命令</string>
+    <string name="ui_output_files_short" formatted="false">文件</string>
+    <string name="ui_output_reasoning_short" formatted="false">思考</string>
+    <string name="ui_output_plan_short" formatted="false">计划</string>
+    <string name="ui_output_reply_short" formatted="false">回复</string>
+    <string name="ui_output_event_short" formatted="false">记录</string>
+    <string name="ui_output_assistant" formatted="false">Codex</string>
+</resources>

@@ -1,0 +1,138 @@
+package dev.remotegpt.client
+
+import kotlinx.coroutines.*
+import net.schmizz.sshj.SSHClient
+import net.schmizz.sshj.common.Buffer
+import net.schmizz.sshj.connection.channel.direct.Session
+import net.schmizz.sshj.userauth.method.AuthKeyboardInteractive
+import net.schmizz.sshj.userauth.method.ChallengeResponseProvider
+import net.schmizz.sshj.userauth.password.PasswordFinder
+import net.schmizz.sshj.userauth.password.Resource
+import net.schmizz.sshj.transport.verification.HostKeyVerifier
+import java.security.PublicKey
+import java.io.Closeable
+import java.security.MessageDigest
+import java.util.Base64
+import java.util.concurrent.TimeUnit
+
+/** Callbacks are suspendable; host-key decisions are made before authentication. */
+interface SshPrompts {
+    suspend fun credential(id: String): Credential
+    suspend fun verifyHostKey(host: String, port: Int, algorithm: String, fingerprint: String): Boolean
+    suspend fun keyboard(prompt: KeyboardPrompt): List<String>
+}
+
+fun shellQuote(value: String): String {
+    require('\u0000' !in value)
+    return "'" + value.replace("'", "'\"'\"'") + "'"
+}
+
+class SshConnection private constructor(val profile: HostProfile, private val chain: List<SSHClient>) : Closeable {
+    val client: SSHClient get() = chain.last()
+
+    companion object {
+        suspend fun connect(profile: HostProfile, prompts: SshPrompts): SshConnection {
+            // Keep ownership outside withContext: cancellation can win while returning from IO.
+            val chain = mutableListOf<SSHClient>()
+            try {
+                return withContext(Dispatchers.IO) {
+                SshCrypto.configure()
+                for (endpoint in profile.jumps + profile.endpoint) {
+                    ensureActive()
+                    require(endpoint.host.isNotBlank() && endpoint.username.isNotBlank() && endpoint.port in 1..65535) { "请填写有效主机、端口和用户名" }
+                    val ssh = SSHClient()
+                    val previous = chain.lastOrNull()
+                    chain += ssh
+                    ssh.connectTimeout = 20_000
+                    ssh.timeout = 120_000 // allows host-key and interactive dialogs
+                    ssh.addHostKeyVerifier(object : HostKeyVerifier {
+                        override fun verify(hostname: String, port: Int, key: PublicKey): Boolean {
+                            val bytes = Buffer.PlainBuffer().putPublicKey(key).compactData
+                            val fingerprint = "SHA256:" + Base64.getEncoder().withoutPadding().encodeToString(MessageDigest.getInstance("SHA-256").digest(bytes))
+                            if (!runBlocking { prompts.verifyHostKey(endpoint.host, endpoint.port, key.algorithm, fingerprint) }) throw HostKeyRejected()
+                            return true
+                        }
+                        override fun findExistingAlgorithms(hostname: String, port: Int): List<String> = emptyList()
+                    })
+                    if (previous == null) ssh.connect(endpoint.host, endpoint.port)
+                    else ssh.connectVia(previous.newDirectConnection(endpoint.host, endpoint.port))
+                    val secret = prompts.credential(endpoint.credentialId)
+                    when (endpoint.auth) {
+                        AuthKind.PASSWORD -> ssh.authPassword(endpoint.username, secret.password)
+                        AuthKind.PRIVATE_KEY -> {
+                            require(secret.privateKey.isNotBlank()) { "请导入 SSH 私钥" }
+                            val password = object : PasswordFinder {
+                                override fun reqPassword(resource: Resource<*>?): CharArray = secret.passphrase.toCharArray()
+                                override fun shouldRetry(resource: Resource<*>?) = false
+                            }
+                            ssh.authPublickey(endpoint.username, ssh.loadKeys(secret.privateKey, null, password))
+                        }
+                        AuthKind.INTERACTIVE -> ssh.auth(endpoint.username, AuthKeyboardInteractive(object : ChallengeResponseProvider {
+                            private var title = "SSH 认证"
+                            private var instruction = ""
+                            override fun getSubmethods() = emptyList<String>()
+                            override fun init(resource: Resource<*>?, name: String, instruction: String) { title = name; this.instruction = instruction }
+                            override fun getResponse(prompt: String, echo: Boolean): CharArray = runBlocking {
+                                prompts.keyboard(KeyboardPrompt(title, instruction, listOf(prompt to echo))).firstOrNull().orEmpty().toCharArray()
+                            }
+                            override fun shouldRetry() = false
+                        }))
+                    }
+                    ssh.connection.keepAlive.keepAliveInterval = 20
+                }
+                SshConnection(profile, chain)
+                }
+            } catch (e: Throwable) {
+                withContext(NonCancellable + Dispatchers.IO) { chain.asReversed().forEach { runCatching { it.close() } } }
+                throw e
+            }
+        }
+    }
+
+    suspend fun command(command: String): String = withContext(Dispatchers.IO) {
+        client.startSession().use { session ->
+            session.exec(command).use { process ->
+                coroutineScope {
+                    val errors = async { val buffer = ByteArray(4096); while (process.errorStream.read(buffer) >= 0) Unit }
+                    val output = async { readLimited(process.inputStream, 1_048_576) }
+                    withTimeout(30_000) {
+                        process.join(25, TimeUnit.SECONDS)
+                        if (process.exitStatus == null) { process.close(); throw RemoteCommandTimeout() }
+                        val body = output.await().decodeToString()
+                        errors.await()
+                        if (process.exitStatus != 0) throw RemoteCommandFailed()
+                        body
+                    }
+                }
+            }
+        }
+    }
+
+    suspend fun version(): String = command("${shellQuote(profile.codexPath)} app-server daemon version")
+    suspend fun bootstrap(): String = command("${shellQuote(profile.codexPath)} app-server daemon bootstrap")
+
+    fun proxy(): Session.Command {
+        val session = client.startSession()
+        return try {
+            val socket = profile.socketPath.takeIf { it.isNotBlank() }?.let { " --sock ${shellQuote(it)}" }.orEmpty()
+            session.exec("exec ${shellQuote(profile.codexPath)} app-server proxy$socket")
+        } catch (e: Throwable) { session.close(); throw e }
+    }
+
+    suspend fun terminal(cols: Int = 80, rows: Int = 24, cwd: String = ""): RemoteTerminal = withContext(Dispatchers.IO) {
+        val session = client.startSession()
+        try {
+            session.allocatePTY("xterm-256color", cols, rows, 0, 0, emptyMap())
+            RemoteTerminal(session.startShell()).also { if (cwd.isNotBlank()) it.write("cd -- ${shellQuote(cwd)}\r".toByteArray()) }
+        } catch (e: Throwable) { session.close(); throw e }
+    }
+
+    override fun close() { chain.asReversed().forEach { runCatching { it.close() } } }
+}
+
+class RemoteTerminal(private val shell: Session.Shell) : Closeable {
+    val input get() = shell.inputStream
+    @Synchronized fun write(bytes: ByteArray) { shell.outputStream.write(bytes); shell.outputStream.flush() }
+    fun resize(cols: Int, rows: Int) = shell.changeWindowDimensions(cols.coerceAtLeast(2), rows.coerceAtLeast(2), 0, 0)
+    override fun close() = shell.close()
+}

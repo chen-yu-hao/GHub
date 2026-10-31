@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.RemoteGPT" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:colorAccent">#31675A</item>
+    </style>
+</resources>
