@@ -36,7 +36,7 @@
 - 前台断线后有限次数退避重连；认证、主机身份和版本问题需要处理。后台不保证长连接；重开 App 会恢复已连接主机和最近会话。未确认消息不会自动重发。
 - 终端重连新建独立 PTY；使用远端 tmux 才能保留 shell 工作。终端初次布局前的输出缓存和等待 UI 渲染的数据均有限制。
 - 设备语音识别优先本地服务；无法保证每台设备都有本地模型或识别服务。结果进入草稿，不自动发送。
-- 当前没有配置 GitHub remote，未上传或发布 GitHub Release。工作流、签名产物和源码在本地准备。
+- 0.1.0 首轮验收时尚未配置 GitHub remote，产物只在本地准备。当前公开发布入口见 [发布说明](releasing.md)。
 
 ## 尚需补充的验收
 
@@ -215,3 +215,11 @@ adb -s emulator-5554 shell am instrument -w -r \
 - 新增 `OutputVisualizationDeviceTest` 两个设备用例，覆盖实时接收及完成后对齐状态；测试源码已通过 AndroidTest 编译。设备测试仍需在可启动模拟器或真机运行，本轮未把编译结果当作设备验收。
 - `:app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug` 通过；Lint 0 errors。由于本机 Android 模拟器此前在系统启动阶段 SIGSEGV，尚未生成本轮真实设备截图或性能数据。
 - 预览 APK：`/home/iaw/project/remote_gpt/dist/remote-gpt-0.1.34-preview.apk`，版本 0.1.34（35），包名 `dev.remotegpt.preview`，APK v2 签名校验通过。SHA-256：`b7444ff45bbb2f8e1161758a3b0c0982dae45356399d8ae5aa97ca996e3218d5`。
+
+## 0.1.34 首次公开发布验证（2026-10-31）
+
+- 正式包名 `dev.remotegpt.app`，versionName `0.1.34`、versionCode 35，最低 API 29、目标 API 36。沿用本机长期发布密钥，APK v2 签名校验通过，证书指纹见 [发布说明](releasing.md)。
+- 本地 `:codex-client:test :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleRelease :app:assembleDebugAndroidTest` 全部完成。协议与会话同步 22 项、App JVM 测试 8 项通过；需要 SSH fixture 的 6 项集成测试跳过，不计入通过数量。
+- Debug / Release Lint 均为 0 errors，分别有 36 / 37 warnings；未新增忽略错误的 baseline。4 项 Python fixture 防护测试通过。
+- 本轮本地没有连接 Android 设备，也未重跑真实 SSH / daemon 集成验证。GitHub Actions 的 API 29 / 35 设备测试结果可在 [CI 运行记录](https://github.com/iawnix/GHub/actions/workflows/check.yml) 查看；这些任务仍不包含需要私有 SSH fixture 的测试。
+- 公开源码排除 `.remote-gpt/` 本地附件、构建目录、签名密钥和本机 SDK 配置。GitHub 发布任务独立构建签名 APK，附件的实际哈希以 Release 中的 `SHA256SUMS` 为准。
