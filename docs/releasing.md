@@ -1,38 +1,71 @@
-# 发布
+# 发布指南
 
-1. 运行 JVM、Lint、Android 设备测试并更新兼容说明。
-2. 更新 `app/build.gradle.kts` 的版本号。
-3. 准备长期保存的 Android 发布密钥，安全备份；后续更新必须使用相同签名。
-4. 使用 README 中的四个环境变量构建签名 Release APK。
-5. 用 SDK 的 `apksigner verify --verbose --print-certs` 核对 APK。
+正式版本通过 [`release.yml`](../.github/workflows/release.yml) 发布。推送 `v*` 标签后，工作流先运行完整检查，再构建签名 APK 并创建 GitHub Release。
 
-GitHub 发布工作流由 `v*` 标签触发，需要这些仓库 secrets：
+## 准备版本
 
-- `ANDROID_KEYSTORE_BASE64`
-- `ANDROID_STORE_PASSWORD`
-- `ANDROID_KEY_ALIAS`
-- `ANDROID_KEY_PASSWORD`
+1. 在 `app/build.gradle.kts` 更新 `versionName`，并递增 `versionCode`。
+2. 在 `docs/releases/v<版本>.md` 编写更新说明，包括主要变化和安装信息。
+3. 按[测试指南](verification.md)检查本次改动；协议变更同时更新[兼容说明](protocol.md)。
+4. 提交修改，创建与 `versionName` 一致的标签并推送。
 
-工作流核对标签与 `versionName`、运行 JVM 单元测试和 Release Lint、构建并验证 APK 签名，然后发布 `ghub.apk`、`SHA256SUMS` 校验和及 `ghub-source.tar.gz` 源码归档。校验和覆盖 APK 和源码包。源码包含 Termux 适配与许可证。不要将私钥、签名口令或用户的主机配置放入附件。
+例如，`versionName` 为 `0.1.41` 时：
 
-公开仓库：[iawnix/GHub](https://github.com/iawnix/GHub)。下载入口：[GitHub Releases](https://github.com/iawnix/GHub/releases/latest)。发布说明放在 `docs/releases/v<版本>.md`；没有对应文件时使用 GitHub 自动生成的说明。工作流先上传草稿附件，上传完成后公开发布。
+```sh
+git tag -a v0.1.41 -m "GHub v0.1.41"
+git push --atomic origin main v0.1.41
+```
 
-## 本次本地构建
+发布流程检查标签与应用版本是否一致。JVM、Lint、API 29/35/36 设备回归和 API 35 Release 运行测试通过后，才会构建公开附件。
 
-交付目录为 `dist/`，包含签名 APK、SHA256、签名验证结果、源码归档和验收日志。APK 使用本机生成并保留的发布密钥，后续更新应继续使用该密钥。
+## GitHub 签名配置
 
-本机密钥目录：`~/.local/share/remote-gpt/signing/`。目录和文件只允许当前用户访问，不在 Git 仓库或源码包内。GitHub Actions 使用同一密钥的仓库 secrets，后续发布必须保留此签名，维护者应另行安全备份。
+仓库需要以下 Actions secrets：
 
-发布证书 SHA-256 指纹：`EC:A8:41:A3:86:BC:9C:82:79:23:AC:A0:72:9B:D2:78:B2:B7:E7:9C:09:BB:8E:2F:B3:03:73:F1:C7:92:F6:20`。
+| Secret | 内容 |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | Base64 编码的发布 keystore |
+| `ANDROID_STORE_PASSWORD` | keystore 口令 |
+| `ANDROID_KEY_ALIAS` | 签名密钥别名 |
+| `ANDROID_KEY_PASSWORD` | 密钥口令 |
 
-Debug 与 Release 使用不同签名，不能互相覆盖安装同一包名；测试模拟器使用 Debug，首次安装 Release 时需卸载 Debug。卸载会清除本机配置和草稿，远端任务不受影响。
+发布密钥应独立备份并保留，用于后续覆盖升级。密钥和口令保存在仓库 secrets 或本机私有目录中，不纳入版本控制。
 
-从 0.1.35 起，发布先复用完整检查工作流（JVM、Lint、API 29/35/36 常规设备测试、API 35 精简 Release 的真实 SSH 测试），全部通过才构建并公开附件。R8 mapping 随 CI 验证报告保留，用于还原混淆堆栈。
+GHub 当前发布证书的 SHA-256 指纹：
 
-本地精简 Release 冒烟测试：在可丢弃的模拟器上设置 `ANDROID_SERIAL` 后运行 `python3 scripts/release_device_check.py`。脚本创建独立 OpenSSH 服务及临时密钥；使用 `-PtestBuildType=release` 选择专用测试源码。如果未设置正式签名环境变量，此测试构建使用 Debug 密钥但保持 `debuggable=false`、R8 与资源裁剪开启。不要将测试签名包当作正式发布附件。
+```text
+EC:A8:41:A3:86:BC:9C:82:79:23:AC:A0:72:9B:D2:78:B2:B7:E7:9C:09:BB:8E:2F:B3:03:73:F1:C7:92:F6:20
+```
 
-0.1.39 起，精简 Release 运行测试还使用已提交的 Room schema 在测试应用中写入离线会话，并通过 Android 无障碍接口验证命令/输出/Markdown 代码复制和完整阅读；不保留额外 UI 类供测试调用。测试 schema 只打包到 instrumentation APK。
+## 本地签名构建
 
-命令流式与重连专项验证：先构建独立预览包及 androidTest APK，再运行 `COMMAND_OUTPUT_FIXTURE=1 DEVICE_TEST_CLASS=dev.remotegpt.app.CommandHistoryDeviceTest python3 scripts/device_check.py`。它只连接独立 SSH / Codex fixture 和本地模型响应服务，执行打印 180 行中文并以退出码 7 结束的测试命令；默认设备回归没有 fixture 参数时跳过该项。
+配置以下环境变量后运行 Release 构建：
 
-终端回归使用 `TerminalPresentationDeviceTest`，覆盖修饰键、应用光标模式、短窗口光标、320dp / 200% 字体和会话切换。真实 Vim / tmux 专项：构建 Debug 及 androidTest APK 后运行 `DEVICE_TEST_CLASS='dev.remotegpt.app.WorkbenchDeviceTest#workbenchResumesPendingApprovalAndRunsRemoteTerminal' python3 scripts/device_check.py`。`python3 scripts/ssh_fixture.py --jvm` 还检查启动目录的引用、无初始化命令回显和 PTY 尺寸变更；精简 Release 专项同步检查项目目录启动。
+```sh
+export RELEASE_KEYSTORE=/private/path/release.jks
+export RELEASE_STORE_PASSWORD='<store-password>'
+export RELEASE_KEY_ALIAS='<key-alias>'
+export RELEASE_KEY_PASSWORD='<key-password>'
+./gradlew :codex-client:test :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease
+```
+
+产物位于 `app/build/outputs/apk/release/`。普通 Release 构建在未配置密钥时生成未签名 APK；`-PtestBuildType=release` 的设备测试构建使用测试签名作为后备。
+
+核对签名：
+
+```sh
+"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs \
+  app/build/outputs/apk/release/app-release.apk
+```
+
+## 发布附件
+
+| 文件 | 用途 |
+|---|---|
+| `ghub.apk` | 正式签名的 Android 安装包 |
+| `ghub-source.tar.gz` | 对应提交的源码，包含 Termux 修改与许可证 |
+| `SHA256SUMS` | APK 与源码包的 SHA-256 校验和 |
+
+工作流先创建草稿 Release，上传附件后公开，并设置为最新版本。R8 mapping 和测试报告保存在对应 Actions 运行的 artifacts 中。
+
+发布完成后，从 Release 下载附件，运行 `sha256sum -c SHA256SUMS`，核对 APK 版本、签名，并在测试设备上检查覆盖升级与启动。公开下载入口为 [GitHub Releases](https://github.com/iawnix/GHub/releases/latest)。

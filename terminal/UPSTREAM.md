@@ -11,7 +11,9 @@ Only terminal-emulator and terminal-view Java sources are included. TerminalSess
 - Removed upstream `TerminalSession.java` and the JNI/process bridge. `TerminalSession.kt` implements the same view-facing contract with remote SSH reads, writes and PTY resize callbacks.
 - Adjusted the terminal view's generated resource import to `dev.remotegpt.terminal.R`.
 - Added `TerminalCallbacks.kt` with default callbacks and explicit clipboard confirmation in the app.
-- Kept the emulator, renderer, selection and input handling upstream sources. The adapter bounds pending UI reads and initial output buffering.
+- The adapter bounds pending UI reads and initial output buffering.
+- Added a default `TerminalViewClient.onKeyInput()` callback, called after input is consumed, so the app can implement one-shot and locked modifier keys while retaining upstream key encoding.
+- Reduced the view's minimum row count from four to two to keep the cursor visible in short viewports, including landscape layouts with the keyboard open.
 - Gradle configuration is maintained by this project; no upstream Termux app, packages or shell process launcher is included.
 
 The upstream license notice is copied to `../licenses/Termux-LICENSE.md`.
