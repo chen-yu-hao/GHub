@@ -44,7 +44,7 @@ class WorkbenchDeviceTest {
             lateinit var job: Job
             compose.runOnIdle { job = vm.saveProfile(profile, emptyMap()) }
             job.join()
-            compose.waitUntil { vm.state.value.profiles.any { it.id == profile.id } }
+            compose.waitUntil { vm.state.value.profiles.any { it.id == profile.id } && vm.state.value.workspaces.containsKey(profile.id) }
         }
         try {
             save(primary)
@@ -68,8 +68,12 @@ class WorkbenchDeviceTest {
             assertEquals(primary.id, vm.state.value.activeHost)
             assertEquals("/workspace/primary", vm.state.value.workspace.selectedProject)
 
+            // The save snackbar can cover the last row while this test immediately
+            // opens the editor again. Clear it before testing the delete action.
+            compose.runOnIdle { vm.message(null) }
             compose.onNodeWithText(tr(R.string.ui_edit_connection)).performClick()
-            compose.onNodeWithText(tr(R.string.ui_delete_server_connection)).performScrollTo().performClick()
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(tr(R.string.ui_delete_server_connection)))
+            compose.onNodeWithText(tr(R.string.ui_delete_server_connection)).performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(tr(R.string.ui_delete)).performClick()
             compose.waitUntil { vm.state.value.profiles.none { it.id == secondary.id } }
             compose.onNodeWithText(tr(R.string.ui_add_server)).assertIsDisplayed()
@@ -80,6 +84,11 @@ class WorkbenchDeviceTest {
             assertEquals(primary.id, vm.state.value.activeHost)
             assertEquals("/workspace/primary", vm.state.value.workspace.selectedProject)
             assertEquals(ConnectionStatus.OFFLINE, vm.state.value.workspace.connection)
+        } catch (error: Throwable) {
+            val screenshot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            FileOutputStream(File(app.filesDir, "device-hostsettings.png")).use { screenshot.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            screenshot.recycle()
+            throw error
         } finally {
             for (profile in listOf(secondary, primary)) {
                 lateinit var job: Job

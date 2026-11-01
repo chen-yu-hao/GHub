@@ -4,7 +4,9 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.performScrollToNode
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -31,13 +33,15 @@ class ProjectVisibilityDeviceTest {
         val profile = HostProfile(name = "Local visibility test", endpoint = SshEndpoint("localhost", 1, "fixture"), defaultCwd = path)
         try {
             withContext(Dispatchers.Main) { vm.saveProfile(profile, emptyMap()) }.join()
-            compose.waitUntil(10_000) { vm.state.value.profiles.any { it.id == profile.id } }
+            compose.waitUntil(10_000) { vm.state.value.profiles.any { it.id == profile.id } && vm.state.value.workspaces.containsKey(profile.id) }
             withContext(Dispatchers.Main) { vm.selectHost(profile.id); vm.saveProject("Legitimate temporary project", path) }
-            compose.waitUntil(10_000) { vm.state.value.workspace.projects.any { it.path == path } }
+            compose.waitUntil(10_000) { vm.state.value.workspace.projects.any { it.path == path && it.name == "Legitimate temporary project" } }
             val thread = ThreadSummary("visibility-fixture", "Stored session", path)
             app.database.workbench().putThreads(listOf(ThreadRow(profile.id, thread.id, wireJson.encodeToString(thread))))
             app.database.workbench().putDraft(DraftRow(profile.id, thread.id, wireJson.encodeToString(Draft(text = "Keep this draft"))))
-            compose.onNodeWithContentDescription(app.getString(R.string.ui_actions_for_project, "Legitimate temporary project")).performScrollTo().performClick()
+            val projectActions = app.getString(R.string.ui_actions_for_project, "Legitimate temporary project")
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasContentDescription(projectActions))
+            compose.onNodeWithContentDescription(projectActions).performClick()
             compose.onNodeWithText(app.getString(R.string.ui_hide_project)).performClick()
             withTimeout(5_000) { while (path !in app.settings.hiddenProjects(profile.id)) delay(30) }
             assertFalse(vm.state.value.workspace.projects.any { it.path == path })
