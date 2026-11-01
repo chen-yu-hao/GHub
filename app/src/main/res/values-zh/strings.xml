@@ -16,6 +16,11 @@
     <string name="ui_enter_the_codex_executable_path" formatted="false">请填写 Codex 可执行文件路径</string>
     <string name="ui_enter_a_host_username_and_valid_port" formatted="false">请填写主机、用户名和有效端口</string>
     <string name="ui_connection_saved" formatted="false">连接配置已保存</string>
+    <string name="ui_connection_saved_reconnect" formatted="false">配置已保存，请重新连接以使用新配置。</string>
+    <string name="ui_connection_changes_require_reconnect" formatted="false">修改地址、认证或远端服务参数会断开此服务器，保存后需重新连接。仅修改名称不会断开。</string>
+    <string name="ui_server_configuration" formatted="false">配置</string>
+    <string name="ui_back_to_server_settings" formatted="false">返回服务器设置</string>
+    <string name="ui_stop_reconnecting" formatted="false">停止重连</string>
     <string name="ui_save_failed" formatted="false">保存失败</string>
     <string name="ui_unknown" formatted="false">未知</string>
     <string name="ui_unsupported_cli_version_the_minimum_is_the">CLI 版本不受支持：%1$s。最低兼容基线为 %2$s，不会自动升级或降级远端。</string>

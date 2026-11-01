@@ -46,12 +46,15 @@ import java.util.UUID
     val hostEditor: HostEditorViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val editProfile = hostEditor.profile
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    var showHostDetail by rememberSaveable { mutableStateOf(false) }
-    var hostsFromSettings by rememberSaveable { mutableStateOf(false) }
+    var settingsHostId by rememberSaveable { mutableStateOf<String?>(null) }
+    val settingsHost = state.profiles.firstOrNull { it.id == settingsHostId }
+    val settingsWorkspace = state.workspaces[settingsHostId] ?: HostWorkspace()
+    val showHostDetail = settingsHost != null
+    val showHostList = showHosts || settingsHostId != null && settingsHost == null
     var showLegal by rememberSaveable { mutableStateOf(false) }
     var showProjectEditor by rememberSaveable { mutableStateOf(false) }
     var showWorkspace by rememberSaveable { mutableStateOf(false) }
-    var showBootstrap by rememberSaveable { mutableStateOf(false) }
+    var bootstrapHost by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingDownload by rememberSaveable { mutableStateOf("") }
     var cameraUri by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
@@ -99,7 +102,7 @@ import java.util.UUID
         showProjectEditor -> CrashScreen.PROJECT_EDITOR
         showWorkspace -> CrashScreen.WORKSPACE
         showSettings -> CrashScreen.SETTINGS
-        showHosts -> CrashScreen.HOSTS
+        showHostList -> CrashScreen.HOSTS
         showHostDetail -> CrashScreen.HOST_DETAILS
         showHome -> CrashScreen.PROJECTS
         showConversation -> CrashScreen.CHAT
@@ -114,11 +117,12 @@ import java.util.UUID
         scrollBehavior.state.heightOffset = 0f
         scrollBehavior.state.contentOffset = 0f
     }
-    BackHandler(!showHome && editProfile == null && !showSettings && !showHosts && !showWorkspace && !showProjectEditor && !showHostDetail) { vm.navigateBack() }
+    BackHandler(!showHome && editProfile == null && !showSettings && !showHostList && !showWorkspace && !showProjectEditor && !showHostDetail) { vm.navigateBack() }
 
-    if (editProfile != null) HostEditor(hostEditor, vm, snackbar = snackbars, onClose = hostEditor::close)
+    if (editProfile != null) HostEditor(hostEditor, vm, snackbar = snackbars,
+        backLabel = tr(if (settingsHostId == editProfile.id) R.string.ui_back_to_server_settings else R.string.ui_back_to_servers), onClose = hostEditor::close)
     else if (showSettings) SettingsScreen(state.theme, state.profiles.size, state.backgroundKeepAlive, onBack = { showSettings = false },
-        onTheme = vm::theme, onHosts = { hostsFromSettings = true; showSettings = false; showHosts = true },
+        onTheme = vm::theme, onHosts = { showSettings = false; showHosts = true },
         onKeepAlive = { enabled -> runCatching {
             if (!enabled) RemoteConnectionService.stop(context)
             else if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -126,14 +130,14 @@ import java.util.UUID
         }
             .onFailure { vm.message(tr(R.string.ui_cannot_keep_the_connection_active_check_notification)) } },
         onClearCache = { vm.clearCache() }, onExport = { export.launch("ghub-diagnostics.txt") }, onLegal = { showLegal = true }, snackbar = snackbars)
-    else if (showHosts) HostsScreen(state.profiles, state.workspaces,
-        onBack = { showHosts = false; showSettings = hostsFromSettings },
-        onOpen = { vm.selectHost(it.id); showHosts = false; showHostDetail = true },
+    else if (showHostList) HostsScreen(state.profiles, state.workspaces,
+        onBack = { showHosts = false; settingsHostId = null; showSettings = true },
+        onOpen = { settingsHostId = it.id; showHosts = false },
         onAdd = { hostEditor.open(HostProfile()) }, snackbar = snackbars)
-    else if (showHostDetail && state.profile != null) HostDetailsScreen(state.profile!!, state.workspace,
-        onBack = { showHostDetail = false; showHosts = true }, onEdit = { state.profile?.let(hostEditor::open) },
-        onConnect = { if (state.workspace.needsBootstrap) showBootstrap = true else vm.connect() }, onDisconnect = { vm.disconnect() },
-        onProjects = { showHostDetail = false; vm.backToProjects() }, snackbar = snackbars)
+    else if (settingsHost != null) HostDetailsScreen(settingsHost, settingsWorkspace,
+        onBack = { settingsHostId = null; showHosts = true }, onEdit = { hostEditor.open(settingsHost) },
+        onConnect = { if (settingsWorkspace.needsBootstrap) bootstrapHost = settingsHost.id else vm.connect(settingsHost.id) },
+        onDisconnect = { vm.disconnect(settingsHost.id) }, snackbar = snackbars)
     else GlassWorkbenchScaffold(
         glassEnabled = (showHome || showConversation) && state.workspace.connection == ConnectionStatus.ONLINE,
         snackbarHost = {
@@ -183,7 +187,7 @@ import java.util.UUID
                         InfoCard(state.workspace.error ?: if (state.workspace.connection == ConnectionStatus.CONNECTING) tr(R.string.ui_establishing_a_secure_connection) else tr(R.string.ui_connect_to_continue_local_drafts_are_preserved),
                             if (state.workspace.connection == ConnectionStatus.CONNECTING) tr(R.string.ui_cancel_connection) else if (state.workspace.needsBootstrap) tr(R.string.ui_set_up_background_service) else tr(R.string.ui_connect)) {
                             if (state.workspace.connection == ConnectionStatus.CONNECTING) vm.disconnect()
-                            else if (state.workspace.needsBootstrap) showBootstrap = true else vm.connect()
+                            else if (state.workspace.needsBootstrap) bootstrapHost = state.activeHost else vm.connect()
                         }
                     }
                 }
@@ -251,9 +255,9 @@ import java.util.UUID
             })
     }
     if (showLegal) LegalNotices { showLegal = false }
-    if (showBootstrap) AlertDialog(onDismissRequest = { showBootstrap = false }, title = { Text(tr(R.string.ui_set_up_the_official_daemon)) },
+    bootstrapHost?.let { host -> AlertDialog(onDismissRequest = { bootstrapHost = null }, title = { Text(tr(R.string.ui_set_up_the_official_daemon)) },
         text = { Text(tr(R.string.ui_this_runs_codex_app_server_daemon_bootstrap)) },
-        confirmButton = { TextButton(onClick = { showBootstrap = false; vm.connect(bootstrap = true) }) { Text(tr(R.string.ui_set_up_and_connect)) } }, dismissButton = { TextButton(onClick = { showBootstrap = false }) { Text(tr(R.string.ui_cancel)) } })
+        confirmButton = { TextButton(onClick = { bootstrapHost = null; vm.connect(host, bootstrap = true) }) { Text(tr(R.string.ui_set_up_and_connect)) } }, dismissButton = { TextButton(onClick = { bootstrapHost = null }) { Text(tr(R.string.ui_cancel)) } }) }
     ConnectionPromptDialog(state.prompt)
     state.previewImage?.let { path -> Dialog(onDismissRequest = vm::dismissImage, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         RemoteImageViewer(path, vm::dismissImage)

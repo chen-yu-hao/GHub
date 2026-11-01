@@ -34,6 +34,62 @@ class WorkbenchDeviceTest {
         compose.onNodeWithText(tr(R.string.ui_connect_your_development_machine)).assertIsDisplayed()
     }
 
+    @Test fun serverSettingsPreserveTheActiveWorkspaceAcrossEditAndDelete() = runBlocking {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as RemoteApplication
+        lateinit var vm: WorkbenchViewModel
+        compose.runOnIdle { vm = app.workbench() }
+        val primary = HostProfile(name = "Primary server", endpoint = SshEndpoint(host = "primary.invalid", username = "dev", auth = AuthKind.PASSWORD))
+        val secondary = HostProfile(name = "Secondary server", endpoint = SshEndpoint(host = "secondary.invalid", username = "dev", auth = AuthKind.PASSWORD))
+        suspend fun save(profile: HostProfile) {
+            lateinit var job: Job
+            compose.runOnIdle { job = vm.saveProfile(profile, emptyMap()) }
+            job.join()
+            compose.waitUntil { vm.state.value.profiles.any { it.id == profile.id } }
+        }
+        try {
+            save(primary)
+            compose.waitUntil { vm.state.value.activeHost == primary.id }
+            compose.runOnIdle { vm.openProject("/workspace/primary") }
+            save(secondary)
+            assertEquals(primary.id, vm.state.value.activeHost)
+            compose.onNodeWithContentDescription(tr(R.string.ui_settings)).performClick()
+            compose.onNodeWithText(tr(R.string.ui_servers)).performClick()
+            compose.onNodeWithText(secondary.name).performClick()
+            assertEquals(primary.id, vm.state.value.activeHost)
+            assertEquals("/workspace/primary", vm.state.value.workspace.selectedProject)
+            compose.activityRule.scenario.recreate()
+            compose.onNodeWithText(tr(R.string.ui_edit_connection)).performScrollTo().performClick()
+            compose.onNodeWithContentDescription(tr(R.string.ui_back_to_server_settings)).assertIsDisplayed()
+            compose.onNodeWithText(tr(R.string.ui_connection_name)).performTextReplacement("Renamed secondary")
+            compose.waitUntil { compose.onAllNodes(hasText(tr(R.string.ui_save_connection)) and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText(tr(R.string.ui_save_connection)).performClick()
+            compose.waitUntil { vm.state.value.profiles.any { it.id == secondary.id && it.name == "Renamed secondary" } }
+            compose.onNodeWithText(tr(R.string.ui_edit_connection)).performScrollTo().assertIsDisplayed()
+            assertEquals(primary.id, vm.state.value.activeHost)
+            assertEquals("/workspace/primary", vm.state.value.workspace.selectedProject)
+
+            compose.onNodeWithText(tr(R.string.ui_edit_connection)).performClick()
+            compose.onNodeWithText(tr(R.string.ui_delete_server_connection)).performScrollTo().performClick()
+            compose.onNodeWithText(tr(R.string.ui_delete)).performClick()
+            compose.waitUntil { vm.state.value.profiles.none { it.id == secondary.id } }
+            compose.onNodeWithText(tr(R.string.ui_add_server)).assertIsDisplayed()
+            compose.onNodeWithText(primary.name).assertIsDisplayed()
+            compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()
+            compose.onNodeWithText(tr(R.string.ui_servers)).assertIsDisplayed()
+            compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()
+            assertEquals(primary.id, vm.state.value.activeHost)
+            assertEquals("/workspace/primary", vm.state.value.workspace.selectedProject)
+            assertEquals(ConnectionStatus.OFFLINE, vm.state.value.workspace.connection)
+        } finally {
+            for (profile in listOf(secondary, primary)) {
+                lateinit var job: Job
+                compose.runOnIdle { job = vm.deleteProfile(profile) }
+                job.join()
+            }
+        }
+        Unit
+    }
+
     @Test fun androidSshAndProxyReadExistingDaemon() = runBlocking {
         val args = InstrumentationRegistry.getArguments()
         Assume.assumeTrue("Pass fixture arguments to run real SSH device test", args.containsKey("sshPort"))
@@ -121,6 +177,15 @@ class WorkbenchDeviceTest {
             compose.waitUntil(10_000) { terminal.getEmulator()?.screen?.transcriptText?.contains("\nFIXTURE>") == true }
             compose.runOnIdle { terminal.write("printf '手机%s OK\\n' '终端'\r") }
             compose.waitUntil(15_000) { terminal.getEmulator()?.screen?.transcriptText?.contains("手机终端 OK") == true }
+            compose.runOnIdle { save = vm.saveProfile(profile.copy(name = "Renamed fixture"),
+                mapOf(endpoint.credentialId to Credential(privateKey = key, passphrase = args.getString("keyPassphrase").orEmpty()))) }
+            save.join()
+            compose.runOnIdle {
+                assertEquals(ConnectionStatus.ONLINE, vm.state.value.workspace.connection)
+                assertEquals(WorkspaceTab.TERMINAL, vm.state.value.tab)
+                assertSame(terminal, vm.state.value.workspace.terminals.single().session)
+                assertTrue(terminal.isRunning())
+            }
             compose.runOnIdle { terminal.write("vim -Nu NONE -i NONE " + shellQuote(args.getString("fixtureRoot") + "/device-note.txt") + "; printf 'VIM_%s_READY\\n' EXITED\r") }
             compose.waitUntil(20_000) { terminal.getEmulator()?.isAlternateBufferActive == true }
             compose.runOnIdle { terminal.write("\u001b:q!\r") }
@@ -195,6 +260,14 @@ class WorkbenchDeviceTest {
             compose.runOnIdle { vm.selectTab(WorkspaceTab.SESSIONS) }
             assertEquals("可继续编辑的草稿", vm.state.value.draft.text)
             android.util.Log.i("WorkbenchCheck", "background release and foreground reconnect passed")
+            compose.runOnIdle { save = vm.saveProfile(profile.copy(socketPath = "/tmp/changed-fixture.sock"), emptyMap()) }
+            save.join()
+            compose.runOnIdle {
+                assertEquals(ConnectionStatus.OFFLINE, vm.state.value.workspace.connection)
+                assertTrue(vm.state.value.workspace.terminals.isEmpty())
+                assertEquals("可继续编辑的草稿", vm.state.value.draft.text)
+                assertEquals(tr(R.string.ui_connection_saved_reconnect), vm.state.value.message)
+            }
             val screenshot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
             FileOutputStream(File(app.filesDir, "device-workbench.png")).use { screenshot.compress(Bitmap.CompressFormat.PNG, 100, it) }
             screenshot.recycle()

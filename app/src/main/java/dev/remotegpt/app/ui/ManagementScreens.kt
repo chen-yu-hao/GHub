@@ -203,36 +203,50 @@ private fun languageLabel(): String = when (AppCompatDelegate.getApplicationLoca
 }
 
 @Composable fun HostDetailsScreen(profile: HostProfile, workspace: HostWorkspace, onBack: () -> Unit, onEdit: () -> Unit,
-    onConnect: () -> Unit, onDisconnect: () -> Unit, onProjects: () -> Unit, snackbar: SnackbarHostState? = null) {
-    ManagementPage(profile.name, onBack, snackbar = snackbar, bottom = {
-        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onEdit, Modifier.weight(1f).heightIn(min = 48.dp)) { Text(tr(R.string.ui_edit_connection)) }
-            Button(onClick = if (workspace.connection == ConnectionStatus.ONLINE) onProjects else if (workspace.connection.busy) onDisconnect else onConnect,
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(when { workspace.connection == ConnectionStatus.ONLINE -> tr(R.string.ui_open_projects); workspace.connection.busy -> tr(R.string.ui_disconnect); else -> tr(R.string.ui_connect) }) }
-        }
-    }) { padding ->
+    onConnect: () -> Unit, onDisconnect: () -> Unit, snackbar: SnackbarHostState? = null) {
+    val connected = workspace.connection == ConnectionStatus.ONLINE
+    val canStop = connected || workspace.connection.busy
+    val actionLabel = tr(when (workspace.connection) {
+        ConnectionStatus.ONLINE, ConnectionStatus.CHECKING, ConnectionStatus.SYNCING -> R.string.ui_disconnect
+        ConnectionStatus.CONNECTING -> R.string.ui_cancel_connection
+        ConnectionStatus.RECONNECTING, ConnectionStatus.WAITING_NETWORK -> R.string.ui_stop_reconnecting
+        else -> if (workspace.needsBootstrap) R.string.ui_set_up_and_connect
+            else if (workspace.connection == ConnectionStatus.ERROR) R.string.ui_retry_now else R.string.ui_connect
+    })
+    ManagementPage(profile.name, onBack, snackbar = snackbar) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(bottom = 24.dp)) {
             item { SectionLabel(tr(R.string.ui_connection)) }
             item {
                 WorkbenchSurface(Modifier.padding(horizontal = 20.dp)) {
                     PreferenceRow(tr(R.string.ui_status), WorkbenchIcons.Lan, connectionLabel(workspace.connection), accent = if (workspace.connection == ConnectionStatus.ONLINE) WorkbenchAccent.TEAL else null)
-                    GroupDivider()
+                    workspace.error?.let { error ->
+                        Text(error, Modifier.padding(horizontal = 24.dp, vertical = 8.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                    }
+                    Box(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
+                        if (canStop) OutlinedButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(actionLabel) }
+                        else Button(onClick = onConnect, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(actionLabel) }
+                    }
+                }
+            }
+            item { SectionLabel(tr(R.string.ui_server_configuration)) }
+            item {
+                WorkbenchSurface(Modifier.padding(horizontal = 20.dp)) {
                     PreferenceRow(tr(R.string.ui_address), WorkbenchIcons.Dns, description = "${profile.endpoint.username}@${profile.endpoint.host}:${profile.endpoint.port}")
                     GroupDivider()
                     PreferenceRow(tr(R.string.ui_jump_hosts), WorkbenchIcons.FolderCopy, if (profile.jumps.isEmpty()) tr(R.string.ui_direct_connection) else tr(R.string.ui_hops , profile.jumps.size))
-                }
-            }
-            workspace.error?.let { error -> item { Text(error, Modifier.padding(horizontal = 24.dp, vertical = 12.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error) } }
-            item { SectionLabel(tr(R.string.ui_remote_environment)) }
-            item {
-                WorkbenchSurface(Modifier.padding(horizontal = 20.dp)) {
-                    PreferenceRow(tr(R.string.ui_codex_account), WorkbenchIcons.Key, description = workspace.account.ifBlank { tr(R.string.ui_available_after_connecting) })
                     GroupDivider()
-                    PreferenceRow(tr(R.string.ui_app_server), WorkbenchIcons.Terminal, workspace.serverVersion.ifBlank { tr(R.string.ui_not_loaded) })
+                    PreferenceRow(tr(R.string.ui_edit_connection), WorkbenchIcons.Settings, onClick = onEdit)
                 }
             }
-            if (workspace.connection == ConnectionStatus.ONLINE) item {
-                TextButton(onClick = onDisconnect, modifier = Modifier.padding(12.dp).heightIn(min = 48.dp)) { Text(tr(R.string.ui_disconnect)) }
+            if (connected) {
+                item { SectionLabel(tr(R.string.ui_remote_environment)) }
+                item {
+                    WorkbenchSurface(Modifier.padding(horizontal = 20.dp)) {
+                        PreferenceRow(tr(R.string.ui_codex_account), WorkbenchIcons.Key, description = workspace.account.ifBlank { tr(R.string.ui_available_after_connecting) })
+                        GroupDivider()
+                        PreferenceRow(tr(R.string.ui_app_server), WorkbenchIcons.Terminal, workspace.serverVersion.ifBlank { tr(R.string.ui_not_loaded) })
+                    }
+                }
             }
         }
     }

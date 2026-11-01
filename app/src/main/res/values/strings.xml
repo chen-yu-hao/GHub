@@ -16,6 +16,11 @@
     <string name="ui_enter_the_codex_executable_path" formatted="false">Enter the Codex executable path</string>
     <string name="ui_enter_a_host_username_and_valid_port" formatted="false">Enter a host, username, and valid port</string>
     <string name="ui_connection_saved" formatted="false">Connection saved</string>
+    <string name="ui_connection_saved_reconnect" formatted="false">Connection settings saved. Reconnect to use them.</string>
+    <string name="ui_connection_changes_require_reconnect" formatted="false">Changing the address, authentication, or remote service settings disconnects this server. Reconnect after saving. Renaming it keeps the connection open.</string>
+    <string name="ui_server_configuration" formatted="false">Configuration</string>
+    <string name="ui_back_to_server_settings" formatted="false">Back to server settings</string>
+    <string name="ui_stop_reconnecting" formatted="false">Stop reconnecting</string>
     <string name="ui_save_failed" formatted="false">Save failed</string>
     <string name="ui_unknown" formatted="false">Unknown</string>
     <string name="ui_unsupported_cli_version_the_minimum_is_the">Unsupported CLI version: %1$s. The minimum is %2$s. The remote installation will not be changed.</string>

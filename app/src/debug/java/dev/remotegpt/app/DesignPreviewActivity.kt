@@ -74,7 +74,7 @@ class DesignPreviewActivity : androidx.appcompat.app.AppCompatActivity() {
     val holder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     if (screen == "settings") { SettingsScreen(theme, 1, false, back, {}, { screen = "hosts" }, {}, {}, {}, {}); return@WorkbenchTheme }
     if (screen == "hosts") { HostsScreen(listOf(sampleHost), mapOf("demo" to sampleWorkspace), back, { screen = "host" }, {}); return@WorkbenchTheme }
-    if (screen == "host") { HostDetailsScreen(sampleHost, sampleWorkspace, back, {}, {}, {}, { screen = "projects" }); return@WorkbenchTheme }
+    if (screen == "host") { HostDetailsScreen(sampleHost, sampleWorkspace, back, {}, {}, {}); return@WorkbenchTheme }
     val ws = HostWorkspace(connection = ConnectionStatus.ONLINE, projects = projects, selectedProject = projectRoot, threads = threads,
         results = mapOf("reconnect" to ResultReceipt("turn", "completed", completedTurnId = "turn", seenTurnId = if (unread) null else "turn")))
     val sampleItems = listOf(

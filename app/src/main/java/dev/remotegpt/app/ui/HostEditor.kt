@@ -32,7 +32,8 @@ import dev.remotegpt.app.*
 import dev.remotegpt.client.*
 import kotlinx.coroutines.*
 
-@Composable fun HostEditor(editor: HostEditorViewModel, vm: WorkbenchViewModel, snackbar: SnackbarHostState? = null, onClose: () -> Unit) {
+@Composable fun HostEditor(editor: HostEditorViewModel, vm: WorkbenchViewModel, snackbar: SnackbarHostState? = null,
+    backLabel: String = tr(R.string.ui_back_to_servers), onClose: () -> Unit) {
     val profile = editor.profile ?: return
     val credentials = editor.credentials
     val loading = editor.loading
@@ -68,7 +69,7 @@ import kotlinx.coroutines.*
     }
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize()) {
-        Scaffold(modifier = Modifier.imePadding(), snackbarHost = { snackbar?.let { SnackbarHost(it) } }, topBar = { TopAppBar(title = { Text(tr(R.string.ui_server_connection), style = MaterialTheme.typography.titleLarge) }, navigationIcon = { IconButton(onClick = onClose) { Icon(WorkbenchIcons.ArrowBack, tr(R.string.ui_back_to_servers)) } },
+        Scaffold(modifier = Modifier.imePadding(), snackbarHost = { snackbar?.let { SnackbarHost(it) } }, topBar = { TopAppBar(title = { Text(tr(R.string.ui_server_connection), style = MaterialTheme.typography.titleLarge) }, navigationIcon = { IconButton(onClick = onClose) { Icon(WorkbenchIcons.ArrowBack, backLabel) } },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
             bottomBar = {
                 Surface {
@@ -79,6 +80,9 @@ import kotlinx.coroutines.*
                 }
             }) { padding ->
             LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                if (vm.state.value.workspaces[profile.id]?.connection?.let { it != ConnectionStatus.OFFLINE } == true) item {
+                    Text(tr(R.string.ui_connection_changes_require_reconnect), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 item { OutlinedTextField(profile.name, { editor.updateProfile(profile.copy(name = it)) }, label = { Text(tr(R.string.ui_connection_name)) }, placeholder = { Text(tr(R.string.ui_for_example_development_server)) }, modifier = Modifier.fillMaxWidth().then(imeAwareFieldModifier()), singleLine = true) }
                 item {
                     WorkbenchSurface() {

@@ -276,12 +276,19 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
             }
             val used = (profile.jumps + profile.endpoint).map { it.credentialId }.toSet()
             val previous = state.value.profiles.firstOrNull { it.id == profile.id }
-            withContext(Dispatchers.IO) { credentials.filterKeys { it in used }.forEach { (id, secret) -> app.secrets.save(id, secret) } }
-            disconnect(profile.id)
+            val credentialsChanged = withContext(Dispatchers.IO) {
+                val changed = credentials.filterKeys { it in used }.filter { (id, secret) -> runCatching { app.secrets.read(id) }.getOrNull() != secret }
+                changed.forEach { (id, secret) -> app.secrets.save(id, secret) }
+                changed.isNotEmpty()
+            }
+            val connectionChanged = previous != null && (previous.endpoint != profile.endpoint || previous.jumps != profile.jumps ||
+                previous.codexPath != profile.codexPath || previous.socketPath != profile.socketPath || credentialsChanged)
+            val needsReconnect = connectionChanged && (profile.id in desiredConnections || ui(profile.id).connection != ConnectionStatus.OFFLINE)
+            if (connectionChanged) disconnect(profile.id)
             dao.putHost(HostRow(profile.id, wireJson.encodeToString(profile)))
             withContext(Dispatchers.IO) { previous?.let { old -> (old.jumps + old.endpoint).filter { it.credentialId !in used }.forEach { app.secrets.remove(it.credentialId) } } }
-            selectHost(profile.id)
-            message(tr(R.string.ui_connection_saved))
+            if (previous == null && state.value.profiles.none { it.id != profile.id }) selectHost(profile.id)
+            message(tr(if (needsReconnect) R.string.ui_connection_saved_reconnect else R.string.ui_connection_saved))
             onSaved(true)
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) { message(e.message ?: tr(R.string.ui_save_failed)); onSaved(false) }
