@@ -197,7 +197,9 @@ class WorkbenchDeviceTest {
             }
             compose.runOnIdle { terminal.write("vim -Nu NONE -i NONE " + shellQuote(args.getString("fixtureRoot") + "/device-note.txt") + "; printf 'VIM_%s_READY\\n' EXITED\r") }
             compose.waitUntil(20_000) { terminal.getEmulator()?.isAlternateBufferActive == true }
-            compose.runOnIdle { terminal.write("\u001b:q!\r") }
+            compose.onNodeWithContentDescription(tr(R.string.terminal_down)).performClick()
+            compose.onNodeWithContentDescription(tr(R.string.terminal_escape)).performClick()
+            compose.runOnIdle { terminal.write(":q!\r") }
             compose.waitUntil(15_000) { terminal.getEmulator()?.isAlternateBufferActive == false &&
                 terminal.getEmulator()?.screen?.transcriptText?.contains("VIM_EXITED_READY") == true }
             assertTrue("Terminal must remain writable after Vim exits", terminal.isRunning())
@@ -211,7 +213,16 @@ class WorkbenchDeviceTest {
             compose.waitUntil(20_000) { terminal.getEmulator()?.isAlternateBufferActive == true }
             compose.runOnIdle { terminal.write("printf 'TMUX_%s_OK\\n' DEVICE\r") }
             compose.waitUntil(15_000) { terminal.getEmulator()?.screen?.transcriptText?.contains("TMUX_DEVICE_OK") == true }
-            compose.runOnIdle { terminal.write("\u0002d") }
+            compose.onNodeWithContentDescription("Ctrl").performClick()
+            // Use the real IME path for the prefix; the next letter must be plain d.
+            compose.runOnIdle {
+                fun terminalView(view: android.view.View): com.termux.view.TerminalView? {
+                    if (view is com.termux.view.TerminalView) return view
+                    if (view is android.view.ViewGroup) repeat(view.childCount) { terminalView(view.getChildAt(it))?.let { return it } }
+                    return null
+                }
+                terminalView(compose.activity.window.decorView)!!.onCreateInputConnection(android.view.inputmethod.EditorInfo()).commitText("bd", 1)
+            }
             compose.waitUntil(15_000) { terminal.getEmulator()?.isAlternateBufferActive == false }
             compose.runOnIdle { vm.closeTerminal(vm.state.value.workspace.terminals.last().id) }
             compose.waitForIdle()

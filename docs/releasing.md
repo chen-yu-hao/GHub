@@ -34,3 +34,5 @@ Debug 与 Release 使用不同签名，不能互相覆盖安装同一包名；�
 0.1.39 起，精简 Release 运行测试还使用已提交的 Room schema 在测试应用中写入离线会话，并通过 Android 无障碍接口验证命令/输出/Markdown 代码复制和完整阅读；不保留额外 UI 类供测试调用。测试 schema 只打包到 instrumentation APK。
 
 命令流式与重连专项验证：先构建独立预览包及 androidTest APK，再运行 `COMMAND_OUTPUT_FIXTURE=1 DEVICE_TEST_CLASS=dev.remotegpt.app.CommandHistoryDeviceTest python3 scripts/device_check.py`。它只连接独立 SSH / Codex fixture 和本地模型响应服务，执行打印 180 行中文并以退出码 7 结束的测试命令；默认设备回归没有 fixture 参数时跳过该项。
+
+终端回归使用 `TerminalPresentationDeviceTest`，覆盖修饰键、应用光标模式、短窗口光标、320dp / 200% 字体和会话切换。真实 Vim / tmux 专项：构建 Debug 及 androidTest APK 后运行 `DEVICE_TEST_CLASS='dev.remotegpt.app.WorkbenchDeviceTest#workbenchResumesPendingApprovalAndRunsRemoteTerminal' python3 scripts/device_check.py`。`python3 scripts/ssh_fixture.py --jvm` 还检查启动目录的引用、无初始化命令回显和 PTY 尺寸变更；精简 Release 专项同步检查项目目录启动。

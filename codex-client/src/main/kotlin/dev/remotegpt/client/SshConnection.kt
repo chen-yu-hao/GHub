@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.common.Buffer
 import net.schmizz.sshj.connection.channel.direct.Session
+import net.schmizz.sshj.connection.channel.Channel
 import net.schmizz.sshj.userauth.method.AuthKeyboardInteractive
 import net.schmizz.sshj.userauth.method.ChallengeResponseProvider
 import net.schmizz.sshj.userauth.password.PasswordFinder
@@ -125,7 +126,13 @@ class SshConnection private constructor(val profile: HostProfile, private val ch
             return withContext(Dispatchers.IO) {
                 val opened = client.startSession().also { session = it }
                 opened.allocatePTY("xterm-256color", cols, rows, 0, 0, emptyMap())
-                RemoteTerminal(opened, opened.startShell()).also { if (cwd.isNotBlank()) it.write("cd -- ${shellQuote(cwd)}\r".toByteArray()) }
+                // Enter the directory before the interactive login shell starts.
+                // Sending cd to a live shell races its startup/line editor and
+                // can echo twice or become input to a program launched by rc files.
+                val channel = if (cwd.isBlank()) opened.startShell() else opened.exec(
+                    "exec /bin/sh -c " + shellQuote("cd -- ${shellQuote(cwd)} && exec \"\${SHELL:-/bin/sh}\" -l"),
+                )
+                RemoteTerminal(opened, channel)
             }
         } catch (e: Throwable) {
             withContext(NonCancellable + Dispatchers.IO) { runCatching { session?.close() } }
@@ -136,9 +143,12 @@ class SshConnection private constructor(val profile: HostProfile, private val ch
     override fun close() { chain.asReversed().forEach { runCatching { it.close() } } }
 }
 
-class RemoteTerminal(private val session: Session, private val shell: Session.Shell) : Closeable {
+class RemoteTerminal(private val session: Session, private val shell: Channel) : Closeable {
+    // SSHJ's SessionChannel implements both Shell and Command; PTY window
+    // changes apply to either channel, but are exposed on the Shell interface.
+    private val window = session as Session.Shell
     val input get() = shell.inputStream
     @Synchronized fun write(bytes: ByteArray) { shell.outputStream.write(bytes); shell.outputStream.flush() }
-    fun resize(cols: Int, rows: Int) = shell.changeWindowDimensions(cols.coerceAtLeast(2), rows.coerceAtLeast(2), 0, 0)
+    fun resize(cols: Int, rows: Int) = window.changeWindowDimensions(cols.coerceAtLeast(2), rows.coerceAtLeast(2), 0, 0)
     override fun close() { try { shell.close() } finally { session.close() } }
 }

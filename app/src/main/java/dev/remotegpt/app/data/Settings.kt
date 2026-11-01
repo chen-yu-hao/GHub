@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import dev.remotegpt.app.ProjectProfile
 import dev.remotegpt.app.ResultReceipt
+import dev.remotegpt.app.TerminalPreferences
 import dev.remotegpt.client.wireJson
 import kotlinx.serialization.encodeToString
 
@@ -18,6 +19,14 @@ class Settings(private val context: Context) {
         context.settingsStore.edit { it[stringPreferencesKey("results:${host}")] = wireJson.encodeToString(value) }
     }
     val theme = context.settingsStore.data.map { it[stringPreferencesKey("theme")] ?: "system" }
+    val terminal = context.settingsStore.data.map {
+        TerminalPreferences(
+            (it[floatPreferencesKey("terminal_font_size")] ?: 14f).let { size -> if (size.isFinite()) size.coerceIn(10f, 28f) else 14f },
+            it[booleanPreferencesKey("terminal_extra_keys")] ?: false,
+        )
+    }
+    suspend fun terminalFontSize(value: Float) { if (value.isFinite()) context.settingsStore.edit { it[floatPreferencesKey("terminal_font_size")] = value.coerceIn(10f, 28f) } }
+    suspend fun terminalExtraKeys(value: Boolean) { context.settingsStore.edit { it[booleanPreferencesKey("terminal_extra_keys")] = value } }
     val activeHost = context.settingsStore.data.map { it[stringPreferencesKey("active_host")] }
     suspend fun theme(value: String) { context.settingsStore.edit { it[stringPreferencesKey("theme")] = value } }
     suspend fun activeHost(value: String) { context.settingsStore.edit { it[stringPreferencesKey("active_host")] = value } }

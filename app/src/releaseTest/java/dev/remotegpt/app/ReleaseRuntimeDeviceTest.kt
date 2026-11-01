@@ -77,11 +77,13 @@ class ReleaseRuntimeDeviceTest {
                     assertEquals("R8 SFTP 中文", original.text)
                     files.saveText(original, "saved")
                     assertEquals("saved", files.readText(path).text)
-                    ssh.terminal().use { terminal ->
+                    ssh.terminal(cwd = args.getString("releaseRoot")!!).use { terminal ->
                         terminal.resize(100, 30)
-                        terminal.write("printf 'RELEASE_%s_OK\\n' PTY\rexit\r".toByteArray())
+                        terminal.write("printf 'RELEASE_%s_OK\\n' PTY\rpwd\rexit\r".toByteArray())
                         val output = terminal.input.bufferedReader().readText()
                         assertTrue(output, output.contains("RELEASE_PTY_OK"))
+                        assertTrue(output, output.contains(args.getString("releaseRoot")!! + "\r\n"))
+                        assertFalse(output, output.contains("cd --"))
                     }
                 }
             }

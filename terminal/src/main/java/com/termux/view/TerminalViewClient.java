@@ -62,6 +62,9 @@ public interface TerminalViewClient {
 
     boolean onCodePoint(int codePoint, boolean ctrlDown, TerminalSession session);
 
+    /** Called after a character or encoded key is consumed, never while reading modifiers. */
+    default void onKeyInput() {}
+
 
     void onEmulatorSet();
 

@@ -337,10 +337,8 @@
     <string name="ui_close_330">关闭 %1$s</string>
     <string name="ui_paste" formatted="false">粘贴</string>
     <string name="ui_show_keyboard" formatted="false">显示键盘</string>
-    <string name="ui_new_terminal_session" formatted="false">新建终端</string>
     <string name="ui_decrease_terminal_text_size" formatted="false">缩小终端文字</string>
     <string name="ui_increase_terminal_text_size" formatted="false">放大终端文字</string>
-    <string name="ui_terminal_disconnected_reconnect_and_use_tmux_to" formatted="false">终端已断开。可新建连接后使用 tmux 恢复远端工作。</string>
     <string name="ui_close_terminal" formatted="false">关闭终端？</string>
     <string name="ui_programs_in_a_regular_shell_may_stop" formatted="false">普通 shell 中的程序可能随连接关闭。tmux 会话可在远端继续运行。</string>
     <string name="ui_close_terminal_339" formatted="false">关闭终端</string>
@@ -479,4 +477,28 @@
     <string name="ui_cached_output_tail">当前仅显示缓存的末尾输出，重新连接后加载完整记录。</string>
     <string name="ui_no_command_output">无输出</string>
     <string name="ui_waiting_command_output">等待输出…</string>
+    <string name="terminal_sessions">终端会话</string>
+    <string name="terminal_options">终端选项</string>
+    <string name="terminal_ended">会话已结束</string>
+    <string name="terminal_hide_keyboard">隐藏键盘</string>
+    <string name="terminal_show_extra_keys">展开扩展键盘</string>
+    <string name="terminal_hide_extra_keys">收起扩展键盘</string>
+    <string name="terminal_font_size">终端字号</string>
+    <string name="terminal_font_value">%1$d sp</string>
+    <string name="terminal_pinch_hint">也可以双指缩放终端文字。</string>
+    <string name="terminal_reset_font">恢复 14 sp</string>
+    <string name="terminal_escape">Esc 键</string>
+    <string name="terminal_tab">Tab 键</string>
+    <string name="terminal_left">向左</string>
+    <string name="terminal_right">向右</string>
+    <string name="terminal_up">向上</string>
+    <string name="terminal_down">向下</string>
+    <string name="terminal_home">行首</string>
+    <string name="terminal_end">行尾</string>
+    <string name="terminal_modifier_off">未启用</string>
+    <string name="terminal_modifier_once">仅下一次输入</string>
+    <string name="terminal_modifier_locked">已锁定</string>
+    <string name="terminal_lock_modifier">锁定 %1$s</string>
+    <string name="terminal_unlock_modifier">解除 %1$s 锁定</string>
+    <string name="terminal_modifier_hint">点按修饰键用于下一次输入，长按可锁定。</string>
 </resources>

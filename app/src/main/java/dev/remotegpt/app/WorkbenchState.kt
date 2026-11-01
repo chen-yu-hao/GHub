@@ -18,6 +18,7 @@ enum class WorkspaceTab { SESSIONS, FILES, TERMINAL }
     val model: String? = null, val effort: String? = null)
 data class PendingApproval(val request: ServerRequest, val submitted: Boolean = false)
 data class TerminalTab(val id: String, val name: String, val session: TerminalSession, val projectPath: String = "")
+data class TerminalPreferences(val fontSize: Float = 14f, val extraKeys: Boolean = false)
 @Serializable data class ProjectProfile(val path: String, val name: String = projectName(path))
 fun projectPath(path: String) = path.trimEnd('/').ifEmpty { if (path.startsWith('/')) "/" else "" }
 fun projectName(path: String) = projectPath(path).substringAfterLast('/').ifBlank { if (path == "/") tr(R.string.ui_root_directory) else tr(R.string.ui_ungrouped) }
@@ -80,6 +81,7 @@ data class WorkbenchState(
     val theme: String = "system", val backgroundKeepAlive: Boolean = false, val prompt: ConnectionPrompt? = null, val message: String? = null,
     val previewImage: String? = null, val clipboardRequest: ClipboardRequest? = null,
     val archiveUndo: ArchiveUndo? = null,
+    val terminalPreferences: TerminalPreferences = TerminalPreferences(),
 ) {
     val profile get() = profiles.firstOrNull { it.id == activeHost }
     val workspace get() = workspaces[activeHost] ?: HostWorkspace()

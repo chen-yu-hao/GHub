@@ -63,6 +63,25 @@ class SshIntegrationTest {
         }
     }
 
+    @Test fun `project PTY starts in quoted directory without typed initialization and still resizes`() = runBlocking {
+        val (profile, prompts) = fixture()
+        val directory = File(System.getenv("SSH_FIXTURE_ROOT"), "project ' 中文").apply { mkdirs() }
+        SshConnection.connect(profile, prompts).use { ssh ->
+            ssh.terminal(cwd = directory.path).use { terminal ->
+                terminal.resize(100, 40)
+                terminal.write("printf '\\n'; pwd; stty size; exit\r".toByteArray())
+                val text = withContext(Dispatchers.IO) { terminal.input.readBytes().decodeToString() }
+                assertTrue(text.contains(directory.path + "\r\n"), text)
+                assertTrue(text.contains("40 100"), text)
+                assertFalse(text.contains("cd --"), text)
+            }
+            ssh.terminal(cwd = directory.resolve("missing").path).use { terminal ->
+                val text = withContext(Dispatchers.IO) { terminal.input.readBytes().decodeToString() }
+                assertTrue(text.contains("missing"), text)
+            }
+        }
+    }
+
     @Test fun `encrypted OpenSSH Ed25519 and PEM RSA keys authenticate`() = runBlocking {
         val (profile, prompts) = fixture()
         for (variable in listOf("SSH_FIXTURE_ED25519", "SSH_FIXTURE_RSA")) {

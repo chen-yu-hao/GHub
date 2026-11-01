@@ -53,6 +53,7 @@ class DesignPreviewActivity : androidx.appcompat.app.AppCompatActivity() {
     if (initialScreen == "status") { TaskStatusGallery(); return@WorkbenchTheme }
     if (initialScreen == "markdown") { MarkdownGallery(); return@WorkbenchTheme }
     if (initialScreen == "code") { CodeGallery(); return@WorkbenchTheme }
+    if (initialScreen.startsWith("terminal")) { TerminalGallery(initialScreen == "terminal-multi"); return@WorkbenchTheme }
     val projects = listOf(ProjectProfile("/home/dev/ghub", "GHub"), ProjectProfile("/home/dev/website", "个人网站"), ProjectProfile("/home/dev/api-service", "API 服务"))
     val threads = listOf(
         ThreadSummary("reconnect", "优化会话恢复体验", projects[0].path, "idle"),

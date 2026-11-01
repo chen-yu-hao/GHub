@@ -146,7 +146,7 @@ import java.util.UUID
             }
         },
         topBar = {
-            WorkbenchHeader(
+            if (state.tab != WorkspaceTab.TERMINAL || state.profile == null) WorkbenchHeader(
                 title = when {
                     showConversation -> state.thread?.title ?: tr(R.string.ui_sessions)
                     state.tab == WorkspaceTab.FILES -> tr(R.string.ui_files)
@@ -174,7 +174,7 @@ import java.util.UUID
             if (state.profile == null) {
                 Box(Modifier.weight(1f)) { EmptyPanel(WorkbenchIcons.Lan, tr(R.string.ui_connect_your_development_machine), tr(R.string.ui_continue_codex_sessions_and_browse_files_and), tr(R.string.ui_open_settings), { showSettings = true }) }
             } else {
-                if (state.workspace.connection.recovering) {
+                if (state.tab != WorkspaceTab.TERMINAL && state.workspace.connection.recovering) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (state.workspace.reconnectAttempt >= 3) state.workspace.error ?: tr(R.string.ui_still_reconnecting_remote_tasks_are_not_interrupted)
                             else connectionLabel(state.workspace.connection) + "…", Modifier.weight(1f),
@@ -182,7 +182,7 @@ import java.util.UUID
                         if (state.workspace.reconnectAttempt >= 3 || state.workspace.connection == ConnectionStatus.WAITING_NETWORK)
                             TextButton(onClick = { vm.connect() }) { Text(tr(R.string.ui_retry_now)) }
                     }
-                } else if (state.workspace.connection != ConnectionStatus.ONLINE) {
+                } else if (state.tab != WorkspaceTab.TERMINAL && state.workspace.connection != ConnectionStatus.ONLINE) {
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                         InfoCard(state.workspace.error ?: if (state.workspace.connection == ConnectionStatus.CONNECTING) tr(R.string.ui_establishing_a_secure_connection) else tr(R.string.ui_connect_to_continue_local_drafts_are_preserved),
                             if (state.workspace.connection == ConnectionStatus.CONNECTING) tr(R.string.ui_cancel_connection) else if (state.workspace.needsBootstrap) tr(R.string.ui_set_up_background_service) else tr(R.string.ui_connect)) {
@@ -206,7 +206,7 @@ import java.util.UUID
                                 runCatching { camera.launch(uri) }.onFailure { vm.message(tr(R.string.ui_no_camera_app_found_choose_an_image)) }
                             }, onVoice = { if (listening) speech.cancel() else microphone.launch(Manifest.permission.RECORD_AUDIO) }, optionsOpen = showConversationOptions, onOptionsChange = { showConversationOptions = it }, onBottomControls = { bottomControls = it })
                         WorkspaceTab.FILES -> FilesScreen(state, vm, onWorkspace = { showWorkspace = true }, snackbar = snackbars) { file -> pendingDownload = file.path; saveFile.launch(file.name) }
-                        WorkspaceTab.TERMINAL -> TerminalsScreen(state, vm, onBottomControls = { bottomControls = it })
+                        WorkspaceTab.TERMINAL -> TerminalsScreen(state, vm, onWorkspace = { showWorkspace = true }, onBottomControls = { bottomControls = it })
                     }
                 }
             }

@@ -99,6 +99,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     init {
         network.registerDefaultNetworkCallback(networkCallback)
         launchStorage { app.settings.theme.collect { value -> mutable.update { it.copy(theme = value) } } }
+        launchStorage { app.settings.terminal.collect { value -> mutable.update { it.copy(terminalPreferences = value) } } }
         launchStorage {
             desiredConnections += app.settings.reconnectHosts()
             dao.hosts().collect { rows ->
@@ -265,6 +266,8 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
     fun theme(value: String) { launchStorage { app.settings.theme(value) } }
+    fun terminalFontSize(value: Float) { launchStorage { app.settings.terminalFontSize(value) } }
+    fun terminalExtraKeys(value: Boolean) { launchStorage { app.settings.terminalExtraKeys(value) } }
     fun selectHost(id: String) { mutable.update { it.copy(activeHost = id, tab = WorkspaceTab.SESSIONS) }; launchStorage { app.settings.activeHost(id) } }
 
     fun saveProfile(profile: HostProfile, credentials: Map<String, Credential>, onSaved: (Boolean) -> Unit = {}) = viewModelScope.launch {

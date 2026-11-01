@@ -337,10 +337,8 @@
     <string name="ui_close_330">Close %1$s</string>
     <string name="ui_paste" formatted="false">Paste</string>
     <string name="ui_show_keyboard" formatted="false">Show keyboard</string>
-    <string name="ui_new_terminal_session" formatted="false">New terminal session</string>
     <string name="ui_decrease_terminal_text_size" formatted="false">Decrease terminal text size</string>
     <string name="ui_increase_terminal_text_size" formatted="false">Increase terminal text size</string>
-    <string name="ui_terminal_disconnected_reconnect_and_use_tmux_to" formatted="false">Terminal disconnected. Reconnect and use tmux to resume remote work.</string>
     <string name="ui_close_terminal" formatted="false">Close terminal?</string>
     <string name="ui_programs_in_a_regular_shell_may_stop" formatted="false">Programs in a regular shell may stop when the connection closes. tmux sessions can keep running on the server.</string>
     <string name="ui_close_terminal_339" formatted="false">Close terminal</string>
@@ -486,4 +484,28 @@
     <string name="ui_cached_output_tail">Showing the end of cached output. Reconnect to load the full record.</string>
     <string name="ui_no_command_output">No output</string>
     <string name="ui_waiting_command_output">Waiting for output…</string>
+    <string name="terminal_sessions">Terminal sessions</string>
+    <string name="terminal_options">Terminal options</string>
+    <string name="terminal_ended">Session ended</string>
+    <string name="terminal_hide_keyboard">Hide keyboard</string>
+    <string name="terminal_show_extra_keys">Show extra keys</string>
+    <string name="terminal_hide_extra_keys">Hide extra keys</string>
+    <string name="terminal_font_size">Terminal text size</string>
+    <string name="terminal_font_value">%1$d sp</string>
+    <string name="terminal_pinch_hint">You can also pinch the terminal to change text size.</string>
+    <string name="terminal_reset_font">Reset to 14 sp</string>
+    <string name="terminal_escape">Escape</string>
+    <string name="terminal_tab">Tab</string>
+    <string name="terminal_left">Left arrow</string>
+    <string name="terminal_right">Right arrow</string>
+    <string name="terminal_up">Up arrow</string>
+    <string name="terminal_down">Down arrow</string>
+    <string name="terminal_home">Home</string>
+    <string name="terminal_end">End</string>
+    <string name="terminal_modifier_off">Off</string>
+    <string name="terminal_modifier_once">Next key only</string>
+    <string name="terminal_modifier_locked">Locked</string>
+    <string name="terminal_lock_modifier">Lock %1$s</string>
+    <string name="terminal_unlock_modifier">Unlock %1$s</string>
+    <string name="terminal_modifier_hint">Tap a modifier for the next key. Touch and hold to lock.</string>
 </resources>
