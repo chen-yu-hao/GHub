@@ -10,6 +10,12 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResourceLimitsTest {
+    @Test fun structuredCommandsCountTowardsTheHistoryMemoryBudget() {
+        val item = TimelineItem("cmd", "t", "commandExecution", "", true,
+            commandExecution = CommandExecutionDetails("x".repeat(4_000_001)))
+        val conversation = Conversation("big", listOf(item))
+        assertEquals(listOf("big"), ConversationMemoryBudget().evictions(mapOf("big" to conversation), emptySet()))
+    }
     @Test fun historyEvictsLeastRecentlyViewedButKeepsPinnedAndActive() {
         val budget = ConversationMemoryBudget()
         val conversations = (1..12).associate { "$it" to Conversation("$it", activeTurn = if (it == 2) "turn" else null) }

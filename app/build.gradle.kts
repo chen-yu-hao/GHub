@@ -13,13 +13,16 @@ android {
         resValue("string", "app_name", if (providers.gradleProperty("previewApplicationId").isPresent) "GHub Preview" else "GHub")
         minSdk = 29
         targetSdk = 36
-        versionCode = 39
-        versionName = "0.1.38"
+        versionCode = 40
+        versionName = "0.1.39"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testProguardFiles("proguard-test-rules.pro")
     }
     testBuildType = providers.gradleProperty("testBuildType").orElse("debug").get()
-    if (testBuildType == "release") sourceSets["androidTest"].java.setSrcDirs(listOf("src/releaseTest/java"))
+    if (testBuildType == "release") {
+        sourceSets["androidTest"].java.setSrcDirs(listOf("src/releaseTest/java"))
+        sourceSets["androidTest"].assets.srcDir("schemas")
+    }
     sourceSets["main"].assets.srcDir(rootProject.file("licenses"))
     bundle { language { enableSplit = false } }
     buildFeatures { compose = true; buildConfig = true }

@@ -73,11 +73,23 @@ data class FileEdit(val path: String, val diff: String) {
 }
 
 @Serializable
+data class CommandExecutionDetails(
+    val command: String? = null,
+    val workingDirectory: String? = null,
+    val exitCode: Int? = null,
+    val durationMs: Long? = null,
+    val outputTruncated: Boolean = false,
+)
+
+@Serializable
 data class TimelineItem(
     val id: String, val turnId: String, val kind: String, val text: String,
     val complete: Boolean = false, val imagePaths: List<String> = emptyList(),
     val fileEdits: List<FileEdit> = emptyList(), val failed: Boolean = false,
     val executionStatus: String? = null,
+    // When present, text contains only the output. Older caches retain their
+    // original combined text and must never be split by guessing at newlines.
+    val commandExecution: CommandExecutionDetails? = null,
 ) {
     // Identity within a conversation. Length-prefixing avoids delimiter collisions.
     // Computed, so existing serialized caches remain compatible.

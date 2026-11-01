@@ -18,7 +18,7 @@ object Timeline {
         val text = when (type) {
             "agentMessage" -> raw.string("text").orEmpty()
             "userMessage" -> raw.array("content").mapNotNull { (it as? JsonObject)?.string("text") }.joinToString("\n")
-            "commandExecution" -> listOfNotNull(raw.string("command"), raw.string("aggregatedOutput"), raw.string("status")).joinToString("\n")
+            "commandExecution" -> raw.string("aggregatedOutput").orEmpty()
             "fileChange" -> raw.array("changes").joinToString("\n\n") { c -> c.jsonObject.string("path").orEmpty() + "\n" + c.jsonObject.string("diff").orEmpty() }
             "imageView" -> ""
             "plan" -> raw.string("text").orEmpty()
@@ -37,7 +37,13 @@ object Timeline {
         val failed = raw.string("status") in setOf("failed", "declined") ||
             (raw["exitCode"] as? JsonPrimitive)?.intOrNull?.let { it != 0 } == true
         return TimelineItem(raw.string("id") ?: error("Item without ID"), turn, type, text, complete, images, files, failed,
-            executionStatus = raw.string("status"))
+            executionStatus = raw.string("status"),
+            commandExecution = if (type == "commandExecution") CommandExecutionDetails(
+                command = raw.string("command"),
+                workingDirectory = raw.string("cwd"),
+                exitCode = (raw["exitCode"] as? JsonPrimitive)?.intOrNull,
+                durationMs = (raw["durationMs"] as? JsonPrimitive)?.longOrNull?.takeIf { it >= 0 },
+            ) else null)
     }
 
     fun history(threadId: String, page: JsonObject): Conversation {
@@ -66,7 +72,8 @@ object Timeline {
                 val id = params.string("itemId") ?: return state
                 val turn = params.string("turnId").orEmpty()
                 val current = state.items.firstOrNull { it.id == id && it.turnId == turn }
-                    ?: TimelineItem(id, turn, if (method.contains("commandExecution")) "commandExecution" else "agentMessage", "")
+                    ?: TimelineItem(id, turn, if (method.contains("commandExecution")) "commandExecution" else "agentMessage", "",
+                        commandExecution = if (method.contains("commandExecution")) CommandExecutionDetails() else null)
                 if (current.complete) state else state.copy(items = upsert(state.items, current.copy(text = current.text + params.string("delta").orEmpty())))
             }
             else -> state

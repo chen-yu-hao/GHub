@@ -8,6 +8,7 @@ from probe import Client, ModelFixture
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 from ssh_fixture import servers
 
@@ -25,7 +26,13 @@ with servers() as fixture:
     for port in fixture["ports"]:
         subprocess.run(base + ["reverse", f"tcp:{port}", f"tcp:{port}"], check=True)
     Path(fixture["root"], "device-note.txt").write_text("device edit fixture")
-    model = http.server.ThreadingHTTPServer(("127.0.0.1", 0), ModelFixture)
+    model_handler = ModelFixture
+    if os.environ.get("COMMAND_OUTPUT_FIXTURE") == "1":
+        program = "import sys,time\nfor i in range(180):\n print(f'GHUB_ROW_{i:03d} 中文', flush=True)\n time.sleep(0.02)\nsys.exit(7)"
+        class CommandModelFixture(ModelFixture):
+            probe_command = "python3 -c " + shlex.quote(program)
+        model_handler = CommandModelFixture
+    model = http.server.ThreadingHTTPServer(("127.0.0.1", 0), model_handler)
     threading.Thread(target=model.serve_forever, daemon=True).start()
     client = Client([fixture["codex"], "app-server", "proxy"])
     thread = client.request("thread/start", {
@@ -44,6 +51,7 @@ with servers() as fixture:
     try:
         selection = ["-e", "class", os.environ["DEVICE_TEST_CLASS"]] if os.environ.get("DEVICE_TEST_CLASS") else []
         result = subprocess.run(base + ["shell", "am", "instrument", "-w", "-r"] + selection + [
+            "-e", "commandOutputFixture", os.environ.get("COMMAND_OUTPUT_FIXTURE", "0"),
             "-e", "jumpPorts", ",".join(map(str, fixture["ports"][:-1])), "-e", "keyPassphrase", "fixture-only-passphrase",
             "-e", "threadId", thread, "-e", "fixtureRoot", fixture["root"],
             "-e", "sshHost", "127.0.0.1", "-e", "sshPort", str(fixture["ports"][-1]), "-e", "sshUser", getpass.getuser(),

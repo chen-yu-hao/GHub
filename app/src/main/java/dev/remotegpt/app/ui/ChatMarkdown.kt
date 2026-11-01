@@ -18,8 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -104,25 +102,7 @@ internal fun chatMarkdownComponents() = markdownComponents(
         val end = node.children.firstOrNull { it.type == MarkdownTokenTypes.CODE_FENCE_END }?.startOffset?.minus(node.startOffset) ?: raw.length
         raw.substring(start.coerceAtMost(end), end)
     } else model.content.substring(node.startOffset, node.endOffset).lines().joinToString("\n") { it.removePrefix("    ") }
-    var expanded by rememberSaveable(node.startOffset) { mutableStateOf(false) }
-    val lines = code.lines()
-    val long = lines.size > 16
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(10.dp)) {
-        Column(Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(language.ifBlank { tr(R.string.ui_code) }, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                CopyControl(code)
-            }
-            SelectionContainer {
-                Text(if (long && !expanded) lines.take(12).joinToString("\n") else code,
-                    Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
-                    style = model.typography.code.copy(fontFamily = FontFamily.Monospace), softWrap = false)
-            }
-            if (long) TextButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (expanded) tr(R.string.ui_collapse_code) else tr(R.string.ui_show_full_code_lines , lines.size))
-            }
-        }
-    }
+    CodeBlock(code, language, language.ifBlank { tr(R.string.ui_code) })
 }
 
 @Composable private fun ChatTable(model: MarkdownComponentModel, fullScreen: Boolean = false) {

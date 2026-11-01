@@ -112,7 +112,8 @@ import java.io.File
                     Icon(if (expanded) WorkbenchIcons.ExpandLess else WorkbenchIcons.ExpandMore, if (expanded) tr(R.string.ui_collapse) else tr(R.string.ui_expand), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (expanded) {
-                    SelectionContainer {
+                    if (item.kind == "commandExecution") CommandExecutionContent(item)
+                    else SelectionContainer {
                         if (item.kind == "agentMessage") key(item.identityKey) { StyledMarkdown(item.text.ifBlank { "…" }, item.complete) }
                         else Text(item.text.ifBlank { if (item.imagePaths.isEmpty()) tr(R.string.ui_running) else tr(R.string.ui_image_attachment) }, style = if (tool) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
                             fontFamily = if (tool) FontFamily.Monospace else FontFamily.Default,
@@ -239,7 +240,8 @@ import java.io.File
     WorkbenchSurface(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) { Icon(WorkbenchIcons.FrontHand, null, Modifier.size(20.dp), tint = accentColor(WorkbenchAccent.AMBER)); Spacer(Modifier.width(8.dp)); Text(tr(R.string.ui_approval_required), style = MaterialTheme.typography.titleMedium) }
-            SelectionContainer { Text(req.command ?: req.reason ?: tr(R.string.ui_codex_is_requesting_permission_to_modify_files), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyMedium) }
+            if (req.command != null) CodeBlock(req.command!!, "sh", tr(R.string.ui_output_command_short), tr(R.string.ui_copy_command))
+            else SelectionContainer { Text(req.reason ?: tr(R.string.ui_codex_is_requesting_permission_to_modify_files), style = MaterialTheme.typography.bodyMedium) }
             req.workingDirectory?.let { Text(tr(R.string.ui_working_directory , it), style = MaterialTheme.typography.bodySmall) }
             req.reason?.takeIf { req.command != null }?.let { Text(it) }
             req.writeRoot?.let { Text(tr(R.string.ui_requested_write_scope , it)) }

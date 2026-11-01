@@ -78,8 +78,6 @@
     <string name="ui_copied" formatted="false">已复制</string>
     <string name="ui_copy" formatted="false">复制</string>
     <string name="ui_code" formatted="false">代码</string>
-    <string name="ui_collapse_code" formatted="false">收起代码</string>
-    <string name="ui_show_full_code_lines">展开完整代码（%1$s 行）</string>
     <string name="ui_expand_table" formatted="false">展开表格</string>
     <string name="ui_swipe_sideways_to_view" formatted="false">左右滑动查看</string>
     <string name="ui_collapse_table" formatted="false">收起表格</string>
@@ -446,9 +444,6 @@
     <plurals name="chat_more_files">
         <item quantity="other">查看另外 %1$d 个文件</item>
     </plurals>
-    <plurals name="chat_full_diff">
-        <item quantity="other">查看完整 diff · %1$d 行</item>
-    </plurals>
     <plurals name="ui_output_events">
         <item quantity="other">%1$d 条记录</item>
     </plurals>
@@ -468,4 +463,20 @@
     <string name="ui_zoom_in">放大</string>
     <string name="ui_zoom_out">缩小</string>
     <string name="ui_image_zoom_percent">%1$d%%</string>
+    <string name="ui_copy_code">复制代码</string>
+    <string name="ui_copy_command">复制命令</string>
+    <string name="ui_copy_output">复制输出</string>
+    <string name="ui_copy_record">复制原始记录</string>
+    <string name="ui_copy_diff">复制差异</string>
+    <string name="ui_original_record">原始记录</string>
+    <string name="ui_command_output">输出</string>
+    <string name="ui_view_full_content">查看全部</string>
+    <string name="ui_wrap_lines">换行</string>
+    <string name="ui_wrap_enabled">已开启自动换行</string>
+    <string name="ui_wrap_disabled">已关闭自动换行，可横向滚动</string>
+    <string name="ui_exit_code">退出码 %1$d</string>
+    <string name="ui_duration_ms">%1$d 毫秒</string>
+    <string name="ui_cached_output_tail">当前仅显示缓存的末尾输出，重新连接后加载完整记录。</string>
+    <string name="ui_no_command_output">无输出</string>
+    <string name="ui_waiting_command_output">等待输出…</string>
 </resources>

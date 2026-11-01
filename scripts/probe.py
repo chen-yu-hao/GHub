@@ -142,7 +142,7 @@ class ModelFixture(http.server.BaseHTTPRequestHandler):
             names = [t.get("name") for t in tools]
             name = "exec_command" if "exec_command" in names else "shell_command"
             arguments = {"sandbox_permissions": "require_escalated", "justification": "Approve the isolated Remote GPT connectivity probe?"}
-            arguments["cmd" if name == "exec_command" else "command"] = "printf 'remote-gpt-probe\\n'"
+            arguments["cmd" if name == "exec_command" else "command"] = getattr(self, "probe_command", "printf 'remote-gpt-probe\\n'")
             item = {"id": "fc_" + response_id, "type": "function_call", "call_id": "call_" + response_id, "name": name,
                     "arguments": json.dumps(arguments), "status": "completed"}
         events = [

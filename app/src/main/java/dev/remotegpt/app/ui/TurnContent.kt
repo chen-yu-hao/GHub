@@ -8,8 +8,6 @@ import dev.remotegpt.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -20,10 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.remotegpt.client.*
@@ -271,23 +265,5 @@ private fun eventShortLabel(kind: String): String = tr(when (kind) {
 }
 
 @Composable private fun DiffContent(text: String) {
-    var full by rememberSaveable { mutableStateOf(false) }
-    val lines = remember(text) { text.lines() }
-    val add = accentColor(WorkbenchAccent.TEAL)
-    val remove = MaterialTheme.colorScheme.error
-    val neutral = MaterialTheme.colorScheme.onSurfaceVariant
-    val visible = remember(text, full, add, remove, neutral) {
-        buildAnnotatedString {
-            (if (full) lines else lines.take(60)).forEachIndexed { index, line ->
-                if (index > 0) append('\n')
-                val color = when { line.startsWith("+") -> add; line.startsWith("-") -> remove; else -> neutral }
-                withStyle(SpanStyle(color = color)) { append(line) }
-            }
-        }
-    }
-    SelectionContainer { Text(visible, Modifier.horizontalScroll(rememberScrollState()).padding(12.dp),
-        fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, softWrap = false) }
-    if (lines.size > 60) TextButton(onClick = { full = !full }, modifier = Modifier.fillMaxWidth()) {
-        Text(if (full) tr(R.string.ui_collapse) else trq(R.plurals.chat_full_diff, lines.size))
-    }
+    CodeBlock(text, "diff", tr(R.string.ui_file_change_details), tr(R.string.ui_copy_diff), framed = false, initiallyWrapped = false)
 }

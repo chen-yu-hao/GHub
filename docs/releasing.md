@@ -30,3 +30,7 @@ Debug 与 Release 使用不同签名，不能互相覆盖安装同一包名；�
 从 0.1.35 起，发布先复用完整检查工作流（JVM、Lint、API 29/35/36 常规设备测试、API 35 精简 Release 的真实 SSH 测试），全部通过才构建并公开附件。R8 mapping 随 CI 验证报告保留，用于还原混淆堆栈。
 
 本地精简 Release 冒烟测试：在可丢弃的模拟器上设置 `ANDROID_SERIAL` 后运行 `python3 scripts/release_device_check.py`。脚本创建独立 OpenSSH 服务及临时密钥；使用 `-PtestBuildType=release` 选择专用测试源码。如果未设置正式签名环境变量，此测试构建使用 Debug 密钥但保持 `debuggable=false`、R8 与资源裁剪开启。不要将测试签名包当作正式发布附件。
+
+0.1.39 起，精简 Release 运行测试还使用已提交的 Room schema 在测试应用中写入离线会话，并通过 Android 无障碍接口验证命令/输出/Markdown 代码复制和完整阅读；不保留额外 UI 类供测试调用。测试 schema 只打包到 instrumentation APK。
+
+命令流式与重连专项验证：先构建独立预览包及 androidTest APK，再运行 `COMMAND_OUTPUT_FIXTURE=1 DEVICE_TEST_CLASS=dev.remotegpt.app.CommandHistoryDeviceTest python3 scripts/device_check.py`。它只连接独立 SSH / Codex fixture 和本地模型响应服务，执行打印 180 行中文并以退出码 7 结束的测试命令；默认设备回归没有 fixture 参数时跳过该项。

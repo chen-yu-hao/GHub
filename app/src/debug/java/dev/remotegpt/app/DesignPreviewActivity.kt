@@ -52,6 +52,7 @@ class DesignPreviewActivity : androidx.appcompat.app.AppCompatActivity() {
     if (initialScreen == "reference") { ConversationGallery(); return@WorkbenchTheme }
     if (initialScreen == "status") { TaskStatusGallery(); return@WorkbenchTheme }
     if (initialScreen == "markdown") { MarkdownGallery(); return@WorkbenchTheme }
+    if (initialScreen == "code") { CodeGallery(); return@WorkbenchTheme }
     val projects = listOf(ProjectProfile("/home/dev/ghub", "GHub"), ProjectProfile("/home/dev/website", "个人网站"), ProjectProfile("/home/dev/api-service", "API 服务"))
     val threads = listOf(
         ThreadSummary("reconnect", "优化会话恢复体验", projects[0].path, "idle"),

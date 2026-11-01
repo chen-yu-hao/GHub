@@ -14,6 +14,9 @@ internal fun encodeConversationCache(conversation: Conversation): List<String> {
             text = if (item.kind in setOf("agentMessage", "userMessage")) item.text else item.text.takeLast(8_192),
             imagePaths = item.imagePaths.take(8),
             fileEdits = item.fileEdits.take(8).map { it.copy(diff = it.diff.takeLast(8_192)) },
+            commandExecution = item.commandExecution?.let {
+                it.copy(outputTruncated = it.outputTruncated || item.text.length > 8_192)
+            },
         )
     })
     val json = wireJson.encodeToString(compact)

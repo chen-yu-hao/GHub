@@ -78,8 +78,6 @@
     <string name="ui_copied" formatted="false">Copied</string>
     <string name="ui_copy" formatted="false">Copy</string>
     <string name="ui_code" formatted="false">Code</string>
-    <string name="ui_collapse_code" formatted="false">Collapse code</string>
-    <string name="ui_show_full_code_lines">Show full code (%1$s lines)</string>
     <string name="ui_expand_table" formatted="false">Expand table</string>
     <string name="ui_swipe_sideways_to_view" formatted="false">Swipe sideways to view</string>
     <string name="ui_collapse_table" formatted="false">Collapse table</string>
@@ -448,10 +446,6 @@
         <item quantity="one">View %1$d more file</item>
         <item quantity="other">View %1$d more files</item>
     </plurals>
-    <plurals name="chat_full_diff">
-        <item quantity="one">Show full diff · %1$d line</item>
-        <item quantity="other">Show full diff · %1$d lines</item>
-    </plurals>
     <plurals name="ui_output_events">
         <item quantity="one">%1$d event</item>
         <item quantity="other">%1$d events</item>
@@ -476,4 +470,20 @@
     <string name="ui_zoom_in">Zoom in</string>
     <string name="ui_zoom_out">Zoom out</string>
     <string name="ui_image_zoom_percent">%1$d%%</string>
+    <string name="ui_copy_code">Copy code</string>
+    <string name="ui_copy_command">Copy command</string>
+    <string name="ui_copy_output">Copy output</string>
+    <string name="ui_copy_record">Copy original record</string>
+    <string name="ui_copy_diff">Copy diff</string>
+    <string name="ui_original_record">Original record</string>
+    <string name="ui_command_output">Output</string>
+    <string name="ui_view_full_content">View full content</string>
+    <string name="ui_wrap_lines">Wrap</string>
+    <string name="ui_wrap_enabled">Line wrapping enabled</string>
+    <string name="ui_wrap_disabled">Line wrapping disabled; scroll horizontally</string>
+    <string name="ui_exit_code">Exit code %1$d</string>
+    <string name="ui_duration_ms">%1$d ms</string>
+    <string name="ui_cached_output_tail">Showing the end of cached output. Reconnect to load the full record.</string>
+    <string name="ui_no_command_output">No output</string>
+    <string name="ui_waiting_command_output">Waiting for output…</string>
 </resources>

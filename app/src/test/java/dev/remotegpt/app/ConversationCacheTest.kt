@@ -7,6 +7,18 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ConversationCacheTest {
+    @Test fun commandCacheKeepsExactCommandAndMarksShortenedOutput() {
+        val command = "printf '%s' \"\$HOME\"\n\t" + "中文".repeat(5_000)
+        val output = "line\n".repeat(5_000)
+        val item = TimelineItem("cmd", "turn", "commandExecution", output, true,
+            commandExecution = CommandExecutionDetails(command, "/tmp/a b", 0, 123))
+        val cached = decodeConversationCache(encodeConversationCache(Conversation("t", listOf(item))))!!.items.single()
+        assertEquals(command, cached.commandExecution?.command)
+        assertEquals(output.takeLast(8192), cached.text)
+        assertTrue(cached.commandExecution!!.outputTruncated)
+        assertEquals(0, cached.commandExecution?.exitCode)
+    }
+
     @Test fun longMarkdownSurvivesDiskChunksWithFencesAndUnicodeIntact() {
         val text = "# Long reply\n\n```text\n" + "中文 😀 `code`\n".repeat(20_000) + "```\n\n[link][ref]\n\n[ref]: https://example.com"
         val original = Conversation("thread", listOf(TimelineItem("reply", "turn", "agentMessage", text, true)))
