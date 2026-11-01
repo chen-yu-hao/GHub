@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.Context
 import android.content.ClipboardManager
 import android.database.sqlite.SQLiteDatabase
+import android.graphics.Rect
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
 import org.json.JSONObject
@@ -41,7 +42,7 @@ class ReleaseRuntimeDeviceTest {
             assertClipboard(command)
             // Capture the actual optimized UI, including syntax-colored text.
             instrumentation.uiAutomation.takeScreenshot()?.let { bitmap ->
-                java.io.File(context.getExternalFilesDir(null), "release-code.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                java.io.File(testOutputFolder(), "release-code.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 bitmap.recycle()
             }
             click(label("ui_view_full_content"))
@@ -119,9 +120,12 @@ class ReleaseRuntimeDeviceTest {
     }
 
     private fun nodes(): List<AccessibilityNodeInfo> {
-        val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow ?: return emptyList()
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        try { automation.waitForIdle(100, 1_000) } catch (_: java.util.concurrent.TimeoutException) { /* Poll fresh nodes below. */ }
+        val root = automation.rootInActiveWindow ?: return emptyList()
         val found = mutableListOf<AccessibilityNodeInfo>()
         fun visit(node: AccessibilityNodeInfo) {
+            if (!node.refresh()) return
             found.add(node)
             repeat(node.childCount) { node.getChild(it)?.let(::visit) }
         }
@@ -129,24 +133,49 @@ class ReleaseRuntimeDeviceTest {
         return found
     }
 
-    private fun find(label: String): AccessibilityNodeInfo {
+    private fun find(label: String, accept: (AccessibilityNodeInfo) -> Boolean = { true }): AccessibilityNodeInfo {
         // The chat opens at its end. Search both directions, with fresh nodes
         // after every scroll; no coordinates or app-internal class names.
         repeat(2) { direction ->
             repeat(30) {
                 val nodes = nodes()
-                nodes.firstOrNull { it.isVisibleToUser && (it.text?.toString() == label || it.contentDescription?.toString() == label) }?.let { return it }
-                nodes.firstOrNull { it.isScrollable }?.performAction(if (direction == 0) AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD else AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
-                SystemClock.sleep(100)
+                val matches = nodes.filter { it.isVisibleToUser && (it.text?.toString() == label || it.contentDescription?.toString() == label) }
+                matches.firstOrNull(accept)?.let { return it }
+                if (matches.isEmpty()) {
+                    // A code block may itself scroll horizontally. Move the
+                    // enclosing vertical list, and let its animation settle.
+                    val action = if (direction == 0) AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_UP
+                                 else AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_DOWN
+                    val scroll = nodes.filter { it.isScrollable }
+                        .maxByOrNull { Rect().also(it::getBoundsInScreen).height() }
+                    val actionId = if (scroll?.actionList?.contains(action) == true) action.id
+                        else if (direction == 0) AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD else AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                    scroll?.performAction(actionId)
+                }
+                SystemClock.sleep(250)
             }
         }
-        throw AssertionError("Release UI element not found: $label")
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.uiAutomation.takeScreenshot()?.let { bitmap ->
+            java.io.File(testOutputFolder(), "release-ui-failure.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+            bitmap.recycle()
+        }
+        throw AssertionError("Release UI element not found or not actionable: $label; visible nodes: " +
+            nodes().filter { it.isVisibleToUser }.joinToString { "${it.text ?: it.contentDescription} (${it.className}, clickable=${it.isClickable}, scrollable=${it.isScrollable})" })
     }
 
+    private fun testOutputFolder(): java.io.File = java.io.File(
+        InstrumentationRegistry.getInstrumentation().targetContext.externalMediaDirs.first(), "additional_test_output",
+    ).also { it.mkdirs() }
+
     private fun click(label: String) {
-        var node: AccessibilityNodeInfo? = find(label)
-        while (node != null && !node.isClickable) node = node.parent
-        assertTrue("Cannot click $label", node?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true)
+        // Scrolling/recomposition can invalidate an accessibility node between
+        // lookup and ACTION_CLICK. Retry with fresh nodes only if rejected.
+        find(label) { match ->
+            var node: AccessibilityNodeInfo? = match
+            while (node != null && !node.isClickable) node = node.parent
+            node?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
+        }
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         SystemClock.sleep(150)
     }
