@@ -137,6 +137,7 @@ class TaskBoardLayoutDeviceTest {
                         geometry.assertVisibleAndHit("#previous")
                         geometry.assertVisibleAndHit("#next")
                         geometry.geometry().also { data ->
+                            assertFullViewport(data, width, height)
                             assertNoHorizontalOverflow(data)
                             if (size.documentScroll) {
                                 near("Short-screen tasks must not become a nested vertical scroller", 0.0, data.web("tasks").getDouble("scrollTop"))
@@ -218,6 +219,7 @@ class TaskBoardLayoutDeviceTest {
     }
 
     private fun assertLayout(data: JSONObject, widthDp: Int, heightDp: Int, documentScroll: Boolean) {
+        assertFullViewport(data, widthDp, heightDp)
         val native = data.getJSONObject("native")
         val view = native.getJSONObject("view")
         val content = native.getJSONObject("content")
@@ -226,8 +228,6 @@ class TaskBoardLayoutDeviceTest {
         val visible = native.getJSONObject("visible")
         val viewport = data.web("viewport")
         val boardRect = data.web("board")
-        near("Effective native width must match the requested display profile", widthDp.toDouble(), native.getJSONObject("root").getDouble("width") / density)
-        near("Effective native height must match the requested display profile", heightDp.toDouble(), native.getJSONObject("root").getDouble("height") / density)
         near("WebView must fill available native width", content.getDouble("width") - insets.getInt("left") - insets.getInt("right"), view.getDouble("width"), density * 2)
         near("WebView must fill available native height", content.getDouble("height") - insets.getInt("top") - insets.getInt("bottom"), view.getDouble("height"), density * 2)
         near("WebView must start at available native left edge", content.getDouble("left") + insets.getInt("left"), view.getDouble("left"), density * 2)
@@ -257,6 +257,27 @@ class TaskBoardLayoutDeviceTest {
             assertTrue("Task scrollport collapsed", data.web("tasks").getDouble("height") > 40)
         }
         assertNoHorizontalOverflow(data)
+    }
+
+    /** Also checked after scrolling, when headers can correctly be outside a short viewport. */
+    private fun assertFullViewport(data: JSONObject, widthDp: Int, heightDp: Int) {
+        val native = data.getJSONObject("native")
+        val density = native.getDouble("density")
+        val systemUi = native.getJSONObject("systemUi")
+        assertFalse("Board status bar must remain hidden: $systemUi", systemUi.optBoolean("statusBarsVisible", true))
+        assertFalse("Board navigation bar must remain hidden: $systemUi", systemUi.optBoolean("navigationBarsVisible", true))
+        for (name in listOf("root", "view")) {
+            val rect = native.getJSONObject(name)
+            near("$name width must match the requested display profile", widthDp.toDouble(), rect.getDouble("width") / density)
+            near("$name height must match the requested display profile", heightDp.toDouble(), rect.getDouble("height") / density)
+        }
+        val viewport = data.web("viewport")
+        for (name in listOf("width", "innerWidth", "clientWidth")) {
+            near("CSS $name must match the full requested viewport", widthDp.toDouble(), viewport.getDouble(name))
+        }
+        for (name in listOf("height", "innerHeight", "clientHeight")) {
+            near("CSS $name must match the full requested viewport", heightDp.toDouble(), viewport.getDouble(name))
+        }
     }
 
     private fun assertNoHorizontalOverflow(data: JSONObject) {

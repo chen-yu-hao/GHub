@@ -93,21 +93,31 @@ internal class TaskBoardGeometryDriver(
                 val root = native.getJSONObject("root")
                 val density = native.getDouble("density")
                 val view = native.getJSONObject("view")
+                val systemUi = native.getJSONObject("systemUi")
                 // Include Insets, window flags, focus and position, not only width/height.
                 val key = native.toString()
                 if (key != previous) { previous = key; stableSince = SystemClock.uptimeMillis() }
                 SystemClock.uptimeMillis() - stableSince >= 120 &&
-                    native.getJSONObject("systemUi").getBoolean("attached") &&
-                    native.getJSONObject("systemUi").getBoolean("hasWindowFocus") &&
+                    systemUi.getBoolean("attached") && systemUi.getBoolean("hasWindowFocus") &&
+                    !systemUi.optBoolean("statusBarsVisible", true) &&
+                    !systemUi.optBoolean("navigationBarsVisible", true) &&
                     abs(root.getInt("width") / density - widthDp) <= 2 &&
                     abs(root.getInt("height") / density - heightDp) <= 2 &&
-                    view.getInt("width") > 0 && view.getInt("height") > 0 &&
+                    abs(view.getInt("width") / density - widthDp) <= 2 &&
+                    abs(view.getInt("height") / density - heightDp) <= 2 &&
                     (previousViewId == null || native.getInt("viewId") != previousViewId)
             }
         }
         board.awaitReady()
         board.awaitJavascript("!document.fonts || document.fonts.status === 'loaded'")
         awaitFrame()
+        board.awaitJavascript("""
+            (function(){var v=window.visualViewport;return (
+              Math.abs(innerWidth-$widthDp)<=2 && Math.abs(innerHeight-$heightDp)<=2 &&
+              Math.abs(document.documentElement.clientWidth-$widthDp)<=2 &&
+              Math.abs(document.documentElement.clientHeight-$heightDp)<=2 &&
+              (!v || (Math.abs(v.width-$widthDp)<=2 && Math.abs(v.height-$heightDp)<=2)));})()
+        """.trimIndent())
     }
 
     fun awaitFrame() {

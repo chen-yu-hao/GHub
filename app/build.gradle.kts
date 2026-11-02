@@ -13,8 +13,8 @@ android {
         resValue("string", "app_name", if (providers.gradleProperty("previewApplicationId").isPresent) "GHub 看板 Preview" else "GHub 任务看板")
         minSdk = 29
         targetSdk = 36
-        versionCode = 43
-        versionName = "0.2.1-taskboard"
+        versionCode = 44
+        versionName = "0.2.2-taskboard"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testProguardFiles("proguard-test-rules.pro")
     }
