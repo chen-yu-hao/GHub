@@ -87,7 +87,7 @@ class SessionStatusDeviceTest {
                     assertTrue(vm.state.value.workspace.results.getValue(thread).unread)
 
                     // First open attaches once. Navigation thereafter reuses the same live subscription.
-                    val board = TaskBoardTestDriver { compose.activity }
+                    val board = TaskBoardTestDriver(compose) { compose.activity }
                     board.awaitReady()
                     board.post(JSONObject().put("type", "openTask").put("hostId", profile.id).put("threadId", thread))
                     compose.waitUntil(20_000) { vm.state.value.workspace.selectedThread == thread &&

@@ -65,7 +65,7 @@ internal fun TaskBoardScreen(
     var webView by remember { mutableStateOf<WebView?>(null) }
     var ready by remember { mutableStateOf(false) }
     var dialogOpen by remember { mutableStateOf(false) }
-    val bridge = remember {
+    val bridge: TaskBoardBridge = remember {
         TaskBoardBridge { message ->
             // Dialog visibility has no native side effect; keep Android Back inside the filter/approval dialog.
             if (message == "{\"type\":\"dialogOpened\"}") dialogOpen = true
@@ -142,7 +142,7 @@ internal fun TaskBoardScreen(
                         @Suppress("DEPRECATION")
                         if (Build.VERSION.SDK_INT in 29..32) forceDark = WebSettings.FORCE_DARK_OFF
                     }
-                    addJavascriptInterface(bridge, "GHubBoard")
+                    installTaskBoardBridge(bridge)
                     webViewClient = BoardAssetsClient(hostContext) {
                         ready = true
                     }
@@ -161,6 +161,11 @@ internal fun TaskBoardScreen(
         )
         SnackbarHost(snackbars, Modifier.align(Alignment.BottomCenter))
     }
+}
+
+// Give Lint a concrete interface type instead of Compose remember's generic return type.
+private fun WebView.installTaskBoardBridge(bridge: TaskBoardBridge) {
+    addJavascriptInterface(bridge, "GHubBoard")
 }
 
 /** Only packaged assets at one synthetic HTTPS origin are readable by this WebView. */

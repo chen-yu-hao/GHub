@@ -20,12 +20,13 @@ import org.json.JSONObject
 @RunWith(AndroidJUnit4::class)
 class WorkbenchDeviceTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
-    private val board get() = TaskBoardTestDriver { compose.activity }
+    private val board get() = TaskBoardTestDriver(compose) { compose.activity }
 
     @Test fun emptyWorkspaceOffersHostSetupAndAccessibleEditor() {
         board.awaitReady()
         board.click("#filter")
         board.clickText("管理 SSH 服务器")
+        compose.waitUntil { compose.onAllNodesWithText(tr(R.string.ui_add_server)).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(tr(R.string.ui_add_server)).assertIsDisplayed().performClick()
         compose.onNodeWithText(tr(R.string.ui_connection_name)).assertIsDisplayed()
         compose.onNodeWithText(tr(R.string.ui_host_address)).performScrollTo().assertIsDisplayed()
@@ -59,6 +60,7 @@ class WorkbenchDeviceTest {
             board.awaitReady()
             board.click("#filter")
             board.clickText("应用设置")
+            compose.waitUntil { compose.onAllNodesWithText(tr(R.string.ui_servers)).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText(tr(R.string.ui_servers)).performClick()
             compose.onNodeWithText(secondary.name).performClick()
             assertEquals(primary.id, vm.state.value.activeHost)

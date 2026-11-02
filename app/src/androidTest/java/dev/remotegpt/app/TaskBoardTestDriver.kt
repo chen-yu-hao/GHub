@@ -2,10 +2,11 @@ package dev.remotegpt.app
 
 import android.app.Activity
 import android.os.Looper
-import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import androidx.compose.ui.test.ComposeTimeoutException
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -15,7 +16,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 /** Drives the production WebView and its public bridge, without replacing the board UI. */
-internal class TaskBoardTestDriver(private val activity: () -> Activity) {
+internal class TaskBoardTestDriver(
+    private val compose: ComposeTestRule,
+    private val activity: () -> Activity,
+) {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
     fun withView(action: (WebView) -> Unit) {
@@ -46,14 +50,18 @@ internal class TaskBoardTestDriver(private val activity: () -> Activity) {
     )
 
     fun awaitJavascript(predicate: String, timeoutMillis: Long = 10_000) {
-        val deadline = SystemClock.elapsedRealtime() + timeoutMillis
         var failure: Throwable? = null
-        do {
-            try { if (evaluate(predicate) == "true") return }
-            catch (error: AssertionError) { failure = error }
-            SystemClock.sleep(50)
-        } while (SystemClock.elapsedRealtime() < deadline)
-        throw AssertionError("Board condition was not met: $predicate", failure)
+        try {
+            // The native snapshot collector uses LaunchedEffect and delay. Its
+            // test clock must advance while WebView callbacks use real time.
+            compose.waitUntil(timeoutMillis) {
+                compose.waitForIdle()
+                try { evaluate(predicate) == "true" }
+                catch (error: AssertionError) { failure = error; false }
+            }
+        } catch (error: ComposeTimeoutException) {
+            throw AssertionError("Board condition was not met: $predicate", failure ?: error)
+        }
     }
 
     fun awaitText(text: String) = awaitJavascript("document.body.innerText.includes(${JSONObject.quote(text)})")

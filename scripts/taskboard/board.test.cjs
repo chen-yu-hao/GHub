@@ -122,6 +122,7 @@ test('structured plans preserve actual active/completed steps and never invent a
 class Node {
   constructor(tag, doc) { this.tagName = tag.toUpperCase(); this.ownerDocument = doc; this.children = []; this.attributes = {}; this.listeners = {}; this._text = ''; this.hidden = false; this.disabled = false; this.value = ''; this.style = {}; }
   get firstChild() { return this.children[0] || null; }
+  get scrollHeight() { return this.className === 'flex-gap-probe' ? (this.ownerDocument.flexGapSupported ? 3 : 2) : 0; }
   get textContent() { return this._text + this.children.map(child => child.textContent).join(''); }
   set textContent(text) { this.children.forEach(child => { child.parentNode = null; }); this.children = []; this._text = String(text); }
   appendChild(child) { if (child.parentNode) child.parentNode.removeChild(child); this.children.push(child); child.parentNode = this; return child; }
@@ -136,8 +137,8 @@ class Node {
   querySelectorAll() { return this.walk().filter(node => !node.disabled && (['BUTTON', 'SELECT', 'INPUT'].includes(node.tagName) || node.attributes.tabindex === '0')); }
 }
 
-function browserHarness() {
-  const document = { readyState: 'complete', listeners: {}, created: [], activeElement: null };
+function browserHarness({ flexGapSupported = true } = {}) {
+  const document = { readyState: 'complete', listeners: {}, created: [], activeElement: null, flexGapSupported };
   document.createElement = tag => { const node = new Node(tag, document); document.created.push(node); return node; };
   document.createElementNS = (_, tag) => document.createElement(tag);
   document.documentElement = document.createElement('html');
@@ -291,7 +292,7 @@ test('portable full redraw terminates after a black and white repaint', () => {
 
 // Compare against inline CSS extracted unchanged from the user's supplied HTML.
 const referenceMarkup = fs.readFileSync(path.join(__dirname, '../../app/design/taskboard/supplied-board-markup.html'), 'utf8');
-const baseCss = fs.readFileSync(path.join(ASSET_ROOT, 'board.css'), 'utf8').split('@media')[0];
+const baseCss = fs.readFileSync(path.join(ASSET_ROOT, 'board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').split('@media')[0];
 function declarations(text) {
   return Object.fromEntries(text.split(';').map(item => item.split(/:(.*)/s).slice(0, 2).map(value => value.trim())).filter(item => item.length === 2));
 }
@@ -368,4 +369,29 @@ test('source-derived SVG paths and view boxes remain unchanged; production canno
   assert.match(html, /connect-src 'none'/);
   assert.match(html, /script-src 'self'/);
   assert.doesNotMatch(html, /\son(?:click|load|error)=/i);
+});
+
+test('legacy WebView branch uses one actual flex-height probe and scoped spacing; overlays have edge fallbacks', () => {
+  for (const flexGapSupported of [true, false]) {
+    const harness = browserHarness({ flexGapSupported });
+    assert.equal(harness.document.documentElement.attributes['data-flex-gap'], flexGapSupported ? 'supported' : 'unsupported');
+    harness.context.TaskBoard.render({ hosts: [host()], tasks: [task()] });
+    harness.context.TaskBoard.render({ hosts: [host()], tasks: [] });
+    const probes = harness.document.created.filter(node => node.className === 'flex-gap-probe');
+    assert.equal(probes.length, 1, 'capability is checked once at startup, not on each snapshot');
+    assert.equal(probes[0].parentNode, null, 'probe is removed after measurement');
+    assert.equal(probes[0].children.length, 2);
+  }
+  for (const selector of ['.modal-backdrop', '.refresh-flash']) {
+    const style = cssStyle(selector);
+    for (const edge of ['top', 'right', 'bottom', 'left']) assert.equal(style[edge], '0');
+  }
+  assert.equal(cssStyle(":root[data-flex-gap='unsupported'] .board > * + *")['margin-top'], '12px');
+  assert.equal(cssStyle(":root[data-flex-gap='unsupported'] .task-card > * + *")['margin-top'], '10px');
+  assert.equal(cssStyle(":root[data-flex-gap='unsupported'] .header > :not(:last-child)")['margin-right'], '10px');
+  assert.equal(cssStyle('.sync-button')['margin-left'], 'auto');
+  assert.equal(cssStyle('.details-link')['margin-left'], 'auto');
+  assert.equal(cssStyle('.page-buttons')['margin-left'], 'auto');
+  assert.equal(cssStyle('.flex-gap-probe')['row-gap'], '1px');
+  assert.doesNotMatch(baseCss, /@supports\s*\([^)]*gap\s*:/);
 });

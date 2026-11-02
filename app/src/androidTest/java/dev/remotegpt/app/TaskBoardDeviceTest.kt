@@ -3,6 +3,7 @@ package dev.remotegpt.app
 import android.webkit.WebSettings
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -23,7 +24,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class TaskBoardDeviceTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
-    private val board get() = TaskBoardTestDriver { compose.activity }
+    private val board get() = TaskBoardTestDriver(compose) { compose.activity }
 
     @Test fun packagedPageLoadsAndActualDomButtonOpensNativeHostManagement() {
         board.awaitReady()
@@ -32,6 +33,7 @@ class TaskBoardDeviceTest {
         assertEquals("true", board.evaluate("typeof window.GHubBoard.postMessage === 'function'"))
         board.click("#filter")
         board.clickText("管理 SSH 服务器")
+        compose.waitUntil { compose.onAllNodesWithText(tr(R.string.ui_add_server)).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(tr(R.string.ui_add_server)).assertIsDisplayed()
         compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()
         compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()

@@ -222,6 +222,19 @@
 
   function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
+  function detectFlexGap() {
+    // Grid gap support does not imply Flexbox gap support in older Android WebViews.
+    // Two 1px children must occupy 3px when the 1px flex row-gap is implemented.
+    var probe = element('div', 'flex-gap-probe');
+    probe.setAttribute('aria-hidden', 'true');
+    append(probe, element('div'), element('div'));
+    var parent = doc.body || doc.documentElement;
+    append(parent, probe);
+    var supported = probe.scrollHeight === 3;
+    parent.removeChild(probe);
+    doc.documentElement.setAttribute('data-flex-gap', supported ? 'supported' : 'unsupported');
+  }
+
   function icon(name) {
     var data = global.GHubBoardIcons && global.GHubBoardIcons[name];
     if (!data) return element('span');
@@ -725,6 +738,7 @@
   }
 
   function start() {
+    detectFlexGap();
     try {
       var saved = JSON.parse(global.localStorage.getItem(STORAGE_KEY) || '{}');
       if (saved && typeof saved === 'object') {
