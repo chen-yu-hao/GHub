@@ -205,8 +205,8 @@ private fun languageLabel(): String = when (AppCompatDelegate.getApplicationLoca
 @Composable fun HostDetailsScreen(profile: HostProfile, workspace: HostWorkspace, onBack: () -> Unit, onEdit: () -> Unit,
     onConnect: () -> Unit, onDisconnect: () -> Unit, snackbar: SnackbarHostState? = null) {
     val connected = workspace.connection == ConnectionStatus.ONLINE
-    val canStop = connected || workspace.connection.busy
-    val actionLabel = tr(when (workspace.connection) {
+    val canStop = connected || workspace.connection.busy || workspace.sshConnected
+    val actionLabel = tr(if (workspace.sshConnected && !workspace.connection.busy) R.string.ui_disconnect else when (workspace.connection) {
         ConnectionStatus.ONLINE, ConnectionStatus.CHECKING, ConnectionStatus.SYNCING -> R.string.ui_disconnect
         ConnectionStatus.CONNECTING -> R.string.ui_cancel_connection
         ConnectionStatus.RECONNECTING, ConnectionStatus.WAITING_NETWORK -> R.string.ui_stop_reconnecting
@@ -218,7 +218,13 @@ private fun languageLabel(): String = when (AppCompatDelegate.getApplicationLoca
             item { SectionLabel(tr(R.string.ui_connection)) }
             item {
                 WorkbenchSurface(Modifier.padding(horizontal = 20.dp)) {
-                    PreferenceRow(tr(R.string.ui_status), WorkbenchIcons.Lan, connectionLabel(workspace.connection), accent = if (workspace.connection == ConnectionStatus.ONLINE) WorkbenchAccent.TEAL else null)
+                    PreferenceRow(tr(R.string.ui_ssh_connection), WorkbenchIcons.Lan,
+                        tr(if (workspace.sshConnected) R.string.ui_ssh_connected else R.string.ui_ssh_disconnected),
+                        accent = if (workspace.sshConnected) WorkbenchAccent.TEAL else null)
+                    PreferenceRow(tr(R.string.ui_task_service), WorkbenchIcons.CloudDone, connectionLabel(workspace.connection),
+                        accent = if (connected) WorkbenchAccent.TEAL else null)
+                    if (workspace.sshConnected && !connected) Text(tr(R.string.ui_ssh_without_task_service),
+                        Modifier.padding(horizontal = 24.dp, vertical = 8.dp), style = MaterialTheme.typography.bodyMedium)
                     workspace.error?.let { error ->
                         Text(error, Modifier.padding(horizontal = 24.dp, vertical = 8.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
                     }
@@ -226,6 +232,9 @@ private fun languageLabel(): String = when (AppCompatDelegate.getApplicationLoca
                         if (canStop) OutlinedButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(actionLabel) }
                         else Button(onClick = onConnect, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(actionLabel) }
                     }
+                    if (workspace.sshConnected && !connected && !workspace.connection.busy) TextButton(
+                        onClick = onConnect, modifier = Modifier.padding(horizontal = 20.dp).heightIn(min = 48.dp),
+                    ) { Text(tr(if (workspace.needsBootstrap) R.string.ui_set_up_and_connect else R.string.ui_retry_task_service)) }
                 }
             }
             item { SectionLabel(tr(R.string.ui_server_configuration)) }

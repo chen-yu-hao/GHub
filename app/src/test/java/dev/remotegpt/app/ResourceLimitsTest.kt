@@ -10,6 +10,11 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResourceLimitsTest {
+    @Test fun structuredPlansCountTowardsTheHistoryMemoryBudget() {
+        val conversation = Conversation("plan", planTurnId = "turn",
+            plan = listOf(PlanStep("x".repeat(4_000_001), "pending")))
+        assertEquals(listOf("plan"), ConversationMemoryBudget().evictions(mapOf("plan" to conversation), emptySet()))
+    }
     @Test fun structuredCommandsCountTowardsTheHistoryMemoryBudget() {
         val item = TimelineItem("cmd", "t", "commandExecution", "", true,
             commandExecution = CommandExecutionDetails("x".repeat(4_000_001)))

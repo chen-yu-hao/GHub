@@ -50,6 +50,8 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     private val runtimes = mutableMapOf<String, Runtime>()
     /** SSH/SFTP remains usable while the optional Codex proxy is restarting. */
     private val fileRuntimes = mutableMapOf<String, FileRuntime>()
+    private val sshMonitors = mutableMapOf<String, Job>()
+    private val boardRefreshes = mutableMapOf<String, Job>()
     private val connections = mutableMapOf<String, Job>()
     private val resultMonitors = mutableMapOf<String, Job>()
     private val creatingThreads = mutableSetOf<String>()
@@ -356,7 +358,10 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
                 record("connect_start", "epoch=${epoch} attempt=${ui(host).reconnectAttempt}")
                 ssh = SshConnection.connect(profile, this@WorkbenchViewModel)
                 fileRuntimes.remove(host)?.let { previous -> if (previous.ssh !== ssh) withContext(NonCancellable + Dispatchers.IO) { runCatching { previous.ssh.close() } } }
-                fileRuntimes[host] = FileRuntime(ssh, RemoteFiles(ssh))
+                val files = FileRuntime(ssh, RemoteFiles(ssh))
+                fileRuntimes[host] = files
+                update(host) { it.copy(sshConnected = true) }
+                watchSsh(host, files)
                 stage = "daemon"
                 val cliVersion = ssh.command("${shellQuote(profile.codexPath)} --version").trim()
                 if (!CodexCompatibility.isSupported(cliVersion)) throw UnsupportedServer(tr(R.string.ui_unsupported_cli_version_the_minimum_is_the , cliVersion.ifBlank { tr(R.string.ui_unknown) }, CodexCompatibility.MINIMUM_VERSION))
@@ -406,6 +411,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
                         val permanent = requiresAttention(e, stage)
                         if (permanent) retryBlocked += host
                         update(host) { it.copy(connection = if (permanent) ConnectionStatus.ERROR else recoveryStatus(),
+                            sshConnected = sshReady(host),
                             error = errorText(e), approvals = emptyList()) }
                         record("connect_failed", "epoch=${epoch} stage=${stage} reason=${connectionDiagnostic(e)} retry=${!permanent}")
                     }
@@ -441,6 +447,42 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     private fun hasNetwork() = network.activeNetwork != null
     private fun recoveryStatus() = if (hasNetwork()) ConnectionStatus.RECONNECTING else ConnectionStatus.WAITING_NETWORK
 
+    private fun sshReady(host: String): Boolean = fileRuntimes[host]?.ssh?.client?.let {
+        it.isConnected && it.isAuthenticated
+    } == true
+
+    /** Keep SSH availability honest even when there is no Codex runtime to monitor it. */
+    private fun watchSsh(host: String, files: FileRuntime) {
+        sshMonitors.remove(host)?.cancel()
+        val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
+            try {
+                while (isActive && fileRuntimes[host] === files) {
+                    if (!sshReady(host)) {
+                        forgetDisconnectedSsh(host, files)
+                        return@launch
+                    }
+                    delay(3_000)
+                }
+            } finally {
+                if (sshMonitors[host] === currentCoroutineContext()[Job]) sshMonitors.remove(host)
+            }
+        }
+        sshMonitors[host] = job
+        job.start()
+    }
+
+    private fun forgetDisconnectedSsh(host: String, files: FileRuntime) {
+        if (fileRuntimes[host] !== files || sshReady(host)) return
+        fileRuntimes.remove(host)
+        runtimes[host]?.takeIf { it.ssh === files.ssh }?.let { retireRuntime(host, it) }
+        ui(host).terminals.forEach { it.session.finishIfRunning() }
+        update(host) { it.copy(sshConnected = false, approvals = emptyList(),
+            connection = if (host in retryBlocked) ConnectionStatus.ERROR else recoveryStatus(),
+            error = tr(R.string.ui_ssh_disconnected)) }
+        viewModelScope.launch(Dispatchers.IO) { runCatching { files.ssh.close() } }
+        scheduleReconnect(host, immediate = true)
+    }
+
     /** Remove ownership before asynchronous close: late callbacks cannot change a new connection. */
     private fun retireRuntime(host: String, rt: Runtime) {
         if (runtimes[host] !== rt) return
@@ -449,7 +491,8 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         renderPending.remove(host)
         resultMonitors.remove(host)?.cancel()
         rt.rpc.invalidate()
-        update(host) { it.copy(approvals = emptyList(), loadingHistory = false, loadingThreads = false) }
+        update(host) { it.copy(approvals = emptyList(), loadingHistory = false, loadingThreads = false,
+            sshConnected = sshReady(host)) }
         // Keep the SSH transport for SFTP/terminal while only the Codex proxy
         // is being rebuilt. Full disconnect closes it below.
         viewModelScope.launch(Dispatchers.IO) { rt.rpc.close() }
@@ -464,6 +507,8 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun releaseConnection(host: String) {
+        sshMonitors.remove(host)?.cancel()
+        boardRefreshes.remove(host)?.cancel()
         terminalOpenings.keys.filter { it.first == host }.toList().forEach { terminalOpenings.remove(it)?.cancel() }
         ui(host).terminals.forEach { it.session.finishIfRunning() }
         imageLoads.keys.filter { it.startsWith("$host:") }.toList().forEach { imageLoads.remove(it)?.cancel() }
@@ -474,7 +519,8 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         connections.remove(host)?.cancel()
         runtimes[host]?.let { retireRuntime(host, it) }
         fileRuntimes.remove(host)?.let { runtime -> viewModelScope.launch(Dispatchers.IO) { runCatching { runtime.ssh.close() } } }
-        update(host) { it.copy(connection = ConnectionStatus.OFFLINE, approvals = emptyList(), error = null, reconnectAttempt = 0,
+        update(host) { it.copy(connection = ConnectionStatus.OFFLINE, sshConnected = false, loadingBoard = false,
+            approvals = emptyList(), error = null, reconnectAttempt = 0,
             terminals = emptyList(), selectedTerminal = null, projectTerminals = emptyMap(), openingTerminalProjects = emptySet(), imageLoading = emptySet()) }
     }
 
@@ -664,10 +710,10 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
                         val summary = threadSummary(event.params.obj("thread"))
                         rt.observedThreads[summary.id] = summary
                         update(host) { ws ->
-                            if (ws.archived) return@update ws
                             val existing = ws.threads.firstOrNull { it.id == summary.id }
                             val merged = summary.copy(awaitingFirstMessage = existing?.awaitingFirstMessage == true)
-                            ws.copy(threads = listOf(merged) + ws.threads.filterNot { it.id == summary.id })
+                            ws.copy(threads = if (ws.archived) ws.threads else listOf(merged) + ws.threads.filterNot { it.id == summary.id },
+                                boardThreads = listOf(merged) + ws.boardThreads.orEmpty().filterNot { it.id == summary.id })
                         }
                     }
                     if (thread != null) {
@@ -681,7 +727,8 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
                             turn.string("id")?.let { turnId ->
                                 update(host) { ws -> ws.copy(results = ws.results + (thread to observeResult(ws.results[thread], turnId,
                                     if (event.method == "turn/started") "inProgress" else turn.string("status").orEmpty(), 0, liveEvent = true)),
-                                    threads = ws.threads.map { if (it.id == thread) it.copy(status = if (event.method == "turn/started") "active" else "idle") else it }) }
+                                    threads = ws.threads.map { if (it.id == thread) it.copy(status = if (event.method == "turn/started") "active" else "idle") else it },
+                                    boardThreads = ws.boardThreads?.map { if (it.id == thread) it.copy(status = if (event.method == "turn/started") "active" else "idle") else it }) }
                                 persistResults(host)
                             }
                         }
@@ -699,6 +746,12 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
                             }
                             conversationChanged = after != before
                             ws.copy(conversations = if (conversationChanged) ws.conversations + (thread to after) else ws.conversations, threads = threads,
+                                boardThreads = when (event.method) {
+                                    "thread/name/updated" -> ws.boardThreads?.map { if (it.id == thread) it.copy(title = event.params.string("name") ?: it.title) else it }
+                                    "thread/status/changed" -> ws.boardThreads?.map { if (it.id == thread) it.copy(status = event.params.obj("status").string("type") ?: it.status) else it }
+                                    "thread/archived" -> ws.boardThreads?.filterNot { it.id == thread }
+                                    else -> ws.boardThreads
+                                },
                                 threadListRevision = ws.threadListRevision +
                                     if (event.method in setOf("thread/archived", "thread/unarchived")) 1 else 0)
                         }
@@ -755,21 +808,27 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     /** File and terminal actions use SSH independently from the Codex proxy. */
+    private fun availableFiles(host: String): FileRuntime? {
+        val files = fileRuntimes[host] ?: return null
+        if (sshReady(host)) return files
+        forgetDisconnectedSsh(host, files)
+        return null
+    }
+
     private suspend fun waitForFileRuntime(host: String): FileRuntime? {
-        fileRuntimes[host]?.let { return it }
-        runtimes[host]?.let { runtime -> return FileRuntime(runtime.ssh, runtime.files) }
+        availableFiles(host)?.let { return it }
         if (!foreground) return null
         desiredConnections += host
         connect(host)
         withTimeoutOrNull(45_000) {
             while (currentCoroutineContext().isActive) {
-                fileRuntimes[host]?.let { return@withTimeoutOrNull it }
+                availableFiles(host)?.let { return@withTimeoutOrNull it }
                 if (host in retryBlocked && connections[host]?.isActive != true) break
                 delay(200)
             }
             null
         }?.let { return it }
-        return fileRuntimes[host]
+        return availableFiles(host)
     }
 
     private fun perform(host: String? = state.value.activeHost, block: suspend (String, Runtime) -> Unit) = viewModelScope.launch {
@@ -793,12 +852,75 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
             return@launch
         }
         try { block(host, rt) } catch (e: Exception) {
+            fileRuntimes[host]?.let { forgetDisconnectedSsh(host, it) }
             if (e !is CancellationException) message(errorText(e))
         }
     }
 
     fun refreshThreads(host: String? = state.value.activeHost, more: Boolean = false, background: Boolean = false) = perform(host) { id, rt ->
         refreshThreadsNow(id, rt, more, background)
+    }
+
+    /** Board discovery never inherits the archived/search filters of a conversation screen. */
+    fun refreshBoard() {
+        state.value.profiles.forEach { refreshBoardHost(it.id, more = false) }
+    }
+
+    fun loadMoreBoard(hostId: String) {
+        if (ui(hostId).boardNextThreads != null) refreshBoardHost(hostId, more = true)
+    }
+
+    private fun refreshBoardHost(host: String, more: Boolean) {
+        if (boardRefreshes[host]?.isActive == true) return
+        val rt = runtimes[host] ?: return
+        if (ui(host).connection != ConnectionStatus.ONLINE || !rt.rpc.isConnected) return
+        val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
+            update(host) { it.copy(loadingBoard = true) }
+            try {
+                val revision = ui(host).threadListRevision
+                val version = rt.overviewVersion
+                val cursor = if (more) ui(host).boardNextThreads else null
+                if (more && cursor == null) return@launch
+                val page = rt.api.threads(cursor, archived = false, search = "")
+                if (runtimes[host] !== rt || ui(host).threadListRevision != revision || rt.overviewVersion != version) return@launch
+                val pending = ui(host).threads.filter { it.awaitingFirstMessage && !it.archived }
+                update(host) { ws -> ws.copy(
+                    boardThreads = (page.items + pending + if (more) ws.boardThreads.orEmpty() else emptyList()).distinctBy { it.id },
+                    boardNextThreads = page.nextCursor,
+                    lastSyncedAt = System.currentTimeMillis(),
+                ) }
+                rememberProjects(host, page.items.map { it.cwd })
+                dao.putThreads(page.items.map { ThreadRow(host, it.id, wireJson.encodeToString(it)) })
+                observeResults(host, rt, page.items)
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { if (runtimes[host] === rt) message(errorText(e)) }
+            finally {
+                if (boardRefreshes[host] === currentCoroutineContext()[Job]) {
+                    boardRefreshes.remove(host)
+                    update(host) { it.copy(loadingBoard = false) }
+                }
+            }
+        }
+        boardRefreshes[host] = job
+        job.start()
+    }
+
+    fun openBoardThread(hostId: String, threadId: String): Boolean {
+        if (state.value.profiles.none { it.id == hostId }) return false
+        val ws = ui(hostId)
+        if (summary(hostId, threadId) == null && threadId !in ws.conversations &&
+            ws.approvals.none { it.request.threadId == threadId }) return false
+        selectHost(hostId)
+        openThread(hostId, threadId)
+        return true
+    }
+
+    fun approveBoard(hostId: String, approvalKey: String, decision: String): Boolean {
+        if (decision !in setOf("accept", "decline")) return false
+        val pending = ui(hostId).approvals.firstOrNull { it.request.key == approvalKey && !it.submitted } ?: return false
+        val rt = runtimes[hostId] ?: return false
+        if (!pending.request.supportedApproval || ui(hostId).connection != ConnectionStatus.ONLINE || !rt.rpc.isConnected) return false
+        return approveForHost(hostId, pending.request, decision)
     }
     private suspend fun refreshThreadsNow(id: String, rt: Runtime, more: Boolean = false, background: Boolean = false, observe: Boolean = true) {
         if (!background) update(id) { it.copy(loadingThreads = true) }
@@ -918,9 +1040,12 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         if (runtimes[host] !== rt || ui(host).threadListRevision != revision || rt.overviewVersion != version) return
         page.items.forEach { rt.observedThreads[it.id] = it }
         update(host) { ws ->
-            if (ws.archived || ws.search.isNotBlank()) ws
-            else ws.copy(threads = (page.items + ws.threads).distinctBy { it.id },
+            val visible = if (ws.archived || ws.search.isNotBlank()) ws else ws.copy(
+                threads = (page.items + ws.threads).distinctBy { it.id },
                 nextThreads = if (ws.threads.isEmpty()) page.nextCursor else ws.nextThreads)
+            visible.copy(boardThreads = (page.items + ws.boardThreads.orEmpty()).distinctBy { it.id },
+                boardNextThreads = if (ws.lastSyncedAt == 0L) page.nextCursor else ws.boardNextThreads,
+                lastSyncedAt = System.currentTimeMillis())
         }
         rememberProjects(host, page.items.map { it.cwd })
         // Never delete the paged cache or overwrite the archive list from a monitor.
@@ -981,15 +1106,22 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
                     if (changed) { rt.overviewVersion++; rt.sessions.dirty(id) }
                     update(host) { ws ->
                         val row = ws.threads.firstOrNull { it.id == id }
-                        val rowChanged = row != null && (row.status != observed.status || row.awaitingFirstMessage)
+                        val boardRow = ws.boardThreads?.firstOrNull { it.id == id }
+                        val rowChanged = listOfNotNull(row, boardRow).any { it.status != observed.status || it.awaitingFirstMessage }
                         if (receipt == before && !changed && !rowChanged) return@update ws
                         // Only update existing rows here. A metadata read does not
                         // establish whether an unknown thread belongs in archive view.
                         val conversation = ws.conversations[id]
                         ws.copy(results = ws.results + (id to receipt),
                             threads = ws.threads.map { if (it.id == id) it.copy(status = observed.status, awaitingFirstMessage = false) else it },
+                            boardThreads = ws.boardThreads?.map { if (it.id == id) it.copy(status = observed.status, awaitingFirstMessage = false) else it },
                             conversations = if (conversation != null && changed) ws.conversations + (id to conversation.copy(
-                                activeTurn = if (status == "inProgress") turnId else null, status = status)) else ws.conversations)
+                                activeTurn = if (status == "inProgress") turnId else null, status = status,
+                                latestTurnId = turnId,
+                                planTurnId = conversation.planTurnId.takeIf { it == turnId },
+                                plan = if (conversation.planTurnId == turnId) conversation.plan else emptyList(),
+                                planExplanation = conversation.planExplanation.takeIf { conversation.planTurnId == turnId },
+                            )) else ws.conversations)
                     }
                     if (receipt != before) persistResults(host)
                     // Full message history is fetched only for the selected session,
@@ -1050,6 +1182,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
             rememberProjects(host, listOf(createdRoot))
             update(host) { ws -> ws.copy(
                 threads = listOf(summary) + ws.threads.filterNot { it.id == summary.id },
+                boardThreads = listOf(summary) + ws.boardThreads.orEmpty().filterNot { it.id == summary.id },
                 conversations = if (summary.id in ws.conversations) ws.conversations
                     else ws.conversations + (summary.id to Conversation(summary.id)),
             ) }
@@ -1084,7 +1217,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     private fun openThread(host: String, thread: String, force: Boolean = false) = viewModelScope.launch {
         val opened = SystemClock.elapsedRealtime()
         if (force) runtimes[host]?.sessions?.dirty(thread)
-        val summary = ui(host).threads.firstOrNull { it.id == thread } ?: ui(host).selectedSummary?.takeIf { it.id == thread }
+        val summary = summary(host, thread)
         val root = summary?.cwd?.let(::projectPath) ?: ui(host).selectedProject
         if (root != ui(host).selectedProject) switchProject(host, root)
         update(host) { it.copy(selectedThread = thread, loadingHistory = runtimes[host]?.sessions?.isCurrent(thread) != true, selectedSummary = summary) }
@@ -1131,10 +1264,14 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun summary(host: String, thread: String): ThreadSummary? =
-        ui(host).threads.firstOrNull { it.id == thread } ?: ui(host).selectedSummary?.takeIf { it.id == thread }
+        ui(host).boardThreads?.firstOrNull { it.id == thread } ?: ui(host).threads.firstOrNull { it.id == thread }
+            ?: ui(host).selectedSummary?.takeIf { it.id == thread }
 
     private fun rememberSummary(host: String, summary: ThreadSummary) {
         update(host) { ws -> ws.copy(threads = ws.threads.filterNot { it.id == summary.id } + summary,
+            boardThreads = ws.boardThreads?.filterNot { it.id == summary.id }?.let {
+                if (summary.archived) it else it + summary
+            },
             selectedSummary = if (ws.selectedThread == summary.id) summary else ws.selectedSummary) }
         launchStorage { dao.putThreads(listOf(ThreadRow(host, summary.id, wireJson.encodeToString(summary)))) }
     }
@@ -1302,6 +1439,9 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
             // Only remove after acknowledgement; invalidate older list snapshots.
             update(id) { ws -> ws.copy(threads = ws.threads.filterNot { it.id == thread } +
                 if (ws.archived == value) listOfNotNull(original?.copy(archived = value)) else emptyList(),
+                boardThreads = ws.boardThreads?.filterNot { it.id == thread }?.let { rows ->
+                    if (value) rows else rows + listOfNotNull(original?.copy(archived = false))
+                },
                 threadListRevision = ws.threadListRevision + 1,
                 selectedThread = if (ws.selectedThread == thread) null else ws.selectedThread,
                 selectedSummary = if (ws.selectedThread == thread) null else ws.selectedSummary) }
@@ -1402,12 +1542,18 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     fun interrupt() = perform { host, rt -> ui(host).selectedThread?.let { thread -> ui(host).conversations[thread]?.activeTurn?.let { rt.api.interrupt(thread, it) } } }
     fun approve(request: ServerRequest, decision: String) {
         val host = state.value.workspaces.entries.firstOrNull { (_, ws) -> ws.approvals.any { it.request.key == request.key } }?.key ?: return
-        val rt = runtimes[host] ?: return
-        if (ui(host).connection != ConnectionStatus.ONLINE || !rt.rpc.isConnected) return
-        try {
+        approveForHost(host, request, decision)
+    }
+
+    private fun approveForHost(host: String, request: ServerRequest, decision: String): Boolean {
+        val rt = runtimes[host] ?: return false
+        if (ui(host).connection != ConnectionStatus.ONLINE || !rt.rpc.isConnected ||
+            ui(host).approvals.none { it.request == request && !it.submitted }) return false
+        return try {
             rt.rpc.approve(request, decision)
-            update(host) { it.copy(approvals = it.approvals.map { p -> if (p.request.key == request.key) p.copy(submitted = true) else p }) }
-        } catch (e: Exception) { message(errorText(e)) }
+            update(host) { it.copy(approvals = it.approvals.map { p -> if (p.request == request) p.copy(submitted = true) else p }) }
+            true
+        } catch (e: Exception) { message(errorText(e)); false }
     }
 
     fun listFiles(path: String? = null) {
@@ -1526,8 +1672,9 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     fun dismissImage() { mutable.update { it.copy(previewImage = null) } }
 
     fun ensureTerminal() {
+        val host = state.value.activeHost ?: return
         val ws = state.value.workspace
-        if (ws.connection == ConnectionStatus.ONLINE && ws.terminals.none { it.projectPath == ws.selectedProject }) newTerminal()
+        if (availableFiles(host) != null && ws.terminals.none { it.projectPath == ws.selectedProject }) newTerminal()
     }
 
     fun newTerminal(): Job? {
@@ -1663,7 +1810,10 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
         try { imageCache.clear() } finally { clearingImages = false }
         persistence.keys.filter { it.startsWith("conversation:") }.forEach { persistence.remove(it)?.cancel() }
         runtimes.values.forEach { it.sessions.clearHistory() }
-        mutable.update { all -> all.copy(workspaces = all.workspaces.mapValues { (_, ws) -> ws.copy(conversations = emptyMap(), threads = emptyList(), nextThreads = null) }) }
+        mutable.update { all -> all.copy(workspaces = all.workspaces.mapValues { (_, ws) -> ws.copy(
+            conversations = emptyMap(), threads = emptyList(), nextThreads = null,
+            boardThreads = null, boardNextThreads = null, lastSyncedAt = 0,
+        ) }) }
         cacheWrites.withLock { dao.clearConversations(); dao.clearConversationChunks(); dao.clearThreads() }
         runtimes.values.forEach { it.persistedThreads.clear() }
         message(tr(R.string.ui_local_session_cache_cleared_drafts_are_preserved))

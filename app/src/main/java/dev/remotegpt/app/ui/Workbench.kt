@@ -33,11 +33,18 @@ import androidx.core.content.FileProvider
 import java.io.File
 import androidx.core.content.ContextCompat
 import dev.remotegpt.app.*
+import dev.remotegpt.app.board.TaskBoardAction
 import dev.remotegpt.app.data.CrashScreen
 import dev.remotegpt.client.*
 import java.util.UUID
+import kotlinx.coroutines.launch
 
-@Composable fun Workbench(vm: WorkbenchViewModel, state: WorkbenchState) {
+@Composable fun Workbench(vm: WorkbenchViewModel, state: WorkbenchState, taskBoardEnabled: Boolean = false,
+    onBoardVisibility: (Boolean) -> Unit = {}) {
+    // Keep the legacy component-gallery entry point; MainActivity opts into the board home.
+    var boardVisible by rememberSaveable { mutableStateOf(taskBoardEnabled) }
+    var createFromProjectEditor by rememberSaveable { mutableStateOf(false) }
+    val navigationScope = rememberCoroutineScope()
     var showConversationOptions by rememberSaveable { mutableStateOf(false) }
     var menuProject by rememberSaveable { mutableStateOf<String?>(null) }
     var renameProject by rememberSaveable { mutableStateOf<String?>(null) }
@@ -97,6 +104,77 @@ import java.util.UUID
     }
     val showConversation = state.tab == WorkspaceTab.SESSIONS && state.workspace.selectedThread != null
     val showHome = !showConversation && state.tab == WorkspaceTab.SESSIONS
+    val showBoard = taskBoardEnabled && boardVisible
+    SideEffect { onBoardVisibility(showBoard && editProfile == null && !showSettings && !showHostList && settingsHost == null) }
+    fun returnFromWorkspace() {
+        if (state.tab != WorkspaceTab.SESSIONS && state.workspace.selectedThread != null) {
+            vm.navigateBack()
+        } else if (taskBoardEnabled) {
+            vm.backToProjects()
+            boardVisible = true
+        } else vm.navigateBack()
+    }
+    fun createBoardTask(hostId: String, path: String) {
+        vm.openProject(path)
+        val job = vm.createThread(path)
+        navigationScope.launch {
+            job.join()
+            val current = vm.state.value
+            if (current.activeHost == hostId && current.workspace.selectedThread != null &&
+                current.workspace.selectedProject == projectPath(path)) boardVisible = false
+        }
+    }
+    fun boardAction(action: TaskBoardAction) {
+        when (action.type) {
+            "ready", "refresh" -> Unit
+            "sync" -> vm.refreshBoard()
+            "hosts" -> showHosts = true
+            "settings" -> showSettings = true
+            else -> {
+                val current = vm.state.value
+                val profile = current.profiles.firstOrNull { it.id == action.hostId }
+                if (profile == null) { vm.message(tr(R.string.board_unknown_host)); return }
+                val workspace = current.workspaces[profile.id] ?: HostWorkspace()
+                when (action.type) {
+                    "connect" -> if (workspace.needsBootstrap) bootstrapHost = profile.id else vm.connect(profile.id)
+                    "loadMore" -> vm.loadMoreBoard(profile.id)
+                    "projects" -> {
+                        vm.selectHost(profile.id)
+                        vm.backToProjects()
+                        boardVisible = false
+                    }
+                    "openTask" -> {
+                        if (vm.openBoardThread(profile.id, action.threadId.orEmpty())) boardVisible = false
+                        else vm.message(tr(R.string.board_task_missing))
+                    }
+                    "approve" -> {
+                        // Resolve the request again from current native state. The page never supplies commands to execute.
+                        val matching = workspace.approvals.any { it.request.key == action.approvalKey && it.request.threadId == action.threadId }
+                        if (!matching || !vm.approveBoard(profile.id, action.approvalKey.orEmpty(), action.decision.orEmpty()))
+                            vm.message(tr(R.string.board_task_missing))
+                    }
+                    "newTask" -> {
+                        if (workspace.connection != ConnectionStatus.ONLINE) { vm.message(tr(R.string.board_offline_task)); return }
+                        vm.selectHost(profile.id)
+                        val path = action.path.ifBlank { profile.defaultCwd }
+                        if (!path.startsWith('/')) {
+                            createFromProjectEditor = true
+                            showProjectEditor = true
+                        } else {
+                            createBoardTask(profile.id, path)
+                        }
+                    }
+                    "terminal", "files" -> {
+                        if (!workspace.sshConnected) { vm.message(tr(R.string.board_ssh_offline)); return }
+                        vm.selectHost(profile.id)
+                        vm.openProject(action.path.ifBlank { profile.defaultCwd.takeIf { it.startsWith('/') } ?: "/" })
+                        vm.selectTab(if (action.type == "terminal") WorkspaceTab.TERMINAL else WorkspaceTab.FILES)
+                        boardVisible = false
+                    }
+                }
+            }
+        }
+    }
     val crashScreen = when {
         editProfile != null -> CrashScreen.HOST_EDITOR
         showProjectEditor -> CrashScreen.PROJECT_EDITOR
@@ -104,7 +182,7 @@ import java.util.UUID
         showSettings -> CrashScreen.SETTINGS
         showHostList -> CrashScreen.HOSTS
         showHostDetail -> CrashScreen.HOST_DETAILS
-        showHome -> CrashScreen.PROJECTS
+        showBoard || showHome -> CrashScreen.PROJECTS
         showConversation -> CrashScreen.CHAT
         state.tab == WorkspaceTab.FILES -> CrashScreen.FILES
         state.tab == WorkspaceTab.TERMINAL -> CrashScreen.TERMINAL
@@ -117,7 +195,7 @@ import java.util.UUID
         scrollBehavior.state.heightOffset = 0f
         scrollBehavior.state.contentOffset = 0f
     }
-    BackHandler(!showHome && editProfile == null && !showSettings && !showHostList && !showWorkspace && !showProjectEditor && !showHostDetail) { vm.navigateBack() }
+    BackHandler(!showBoard && (taskBoardEnabled || !showHome) && editProfile == null && !showSettings && !showHostList && !showWorkspace && !showProjectEditor && !showHostDetail) { returnFromWorkspace() }
 
     if (editProfile != null) HostEditor(hostEditor, vm, snackbar = snackbars,
         backLabel = tr(if (settingsHostId == editProfile.id) R.string.ui_back_to_server_settings else R.string.ui_back_to_servers), onClose = hostEditor::close)
@@ -138,6 +216,7 @@ import java.util.UUID
         onBack = { settingsHostId = null; showHosts = true }, onEdit = { hostEditor.open(settingsHost) },
         onConnect = { if (settingsWorkspace.needsBootstrap) bootstrapHost = settingsHost.id else vm.connect(settingsHost.id) },
         onDisconnect = { vm.disconnect(settingsHost.id) }, snackbar = snackbars)
+    else if (showBoard) TaskBoardScreen(vm, state, snackbars, ::boardAction)
     else GlassWorkbenchScaffold(
         glassEnabled = (showHome || showConversation) && state.workspace.connection == ConnectionStatus.ONLINE,
         snackbarHost = {
@@ -155,8 +234,8 @@ import java.util.UUID
                 },
                 host = if (showConversation || state.tab != WorkspaceTab.SESSIONS) state.project?.name else connectionLabel(state.workspace.connection),
                 status = state.workspace.connection,
-                conversation = !showHome,
-                onNavigate = { vm.navigateBack() },
+                conversation = !showHome || taskBoardEnabled,
+                onNavigate = { returnFromWorkspace() },
                 large = largeHeader, scrollBehavior = if (largeHeader) scrollBehavior else null,
                 onHosts = if (!showConversation) ({ showHostSwitcher = true }) else null,
                 onMenu = { if (showHome) showSettings = true else if (showConversation) showConversationOptions = true else showWorkspace = true },
@@ -165,7 +244,8 @@ import java.util.UUID
                 onAdd = if (showHome && state.profile != null) ({ showProjectEditor = true }) else null,
                 onArchive = if (showHome && state.profile != null) ({ vm.showArchived(!state.workspace.archived) }) else null,
                 archiveLabel = tr(if (state.workspace.archived) R.string.ui_back_to_recent else R.string.ui_archived),
-                backLabel = if (state.tab != WorkspaceTab.SESSIONS) tr(R.string.ui_back_to_session) else tr(R.string.ui_back_to_projects),
+                backLabel = if (state.tab != WorkspaceTab.SESSIONS && state.workspace.selectedThread != null) tr(R.string.ui_back_to_session)
+                    else if (taskBoardEnabled) tr(R.string.board_back) else tr(R.string.ui_back_to_projects),
             )
         },
         modifier = Modifier.then(if (largeHeader) Modifier.nestedScroll(scrollBehavior.nestedScrollConnection) else Modifier),
@@ -206,7 +286,7 @@ import java.util.UUID
                                 runCatching { camera.launch(uri) }.onFailure { vm.message(tr(R.string.ui_no_camera_app_found_choose_an_image)) }
                             }, onVoice = { if (listening) speech.cancel() else microphone.launch(Manifest.permission.RECORD_AUDIO) }, optionsOpen = showConversationOptions, onOptionsChange = { showConversationOptions = it }, onBottomControls = { bottomControls = it })
                         WorkspaceTab.FILES -> FilesScreen(state, vm, onWorkspace = { showWorkspace = true }, snackbar = snackbars) { file -> pendingDownload = file.path; saveFile.launch(file.name) }
-                        WorkspaceTab.TERMINAL -> TerminalsScreen(state, vm, onWorkspace = { showWorkspace = true }, onBottomControls = { bottomControls = it })
+                        WorkspaceTab.TERMINAL -> TerminalsScreen(state, vm, onWorkspace = { showWorkspace = true }, onBottomControls = { bottomControls = it }, onBack = { returnFromWorkspace() })
                     }
                 }
             }
@@ -239,8 +319,15 @@ import java.util.UUID
     renameProject?.let { path -> TextPrompt(tr(R.string.ui_rename_project), tr(R.string.ui_project_name), state.workspace.projects.firstOrNull { it.path == path }?.name.orEmpty(),
         onDismiss = { renameProject = null }, onConfirm = { vm.saveProject(it, path); renameProject = null }) }
 
-    if (showProjectEditor) ProjectEditor(state.profile?.defaultCwd.orEmpty(), onDismiss = { showProjectEditor = false },
-        onSave = { name, path -> vm.saveProject(name, path); showProjectEditor = false })
+    if (showProjectEditor) ProjectEditor(state.profile?.defaultCwd.orEmpty(), onDismiss = { showProjectEditor = false; createFromProjectEditor = false },
+        onSave = { name, path ->
+            vm.saveProject(name, path)
+            showProjectEditor = false
+            if (createFromProjectEditor) {
+                createFromProjectEditor = false
+                state.activeHost?.let { createBoardTask(it, path) }
+            }
+        })
     if (showWorkspace) ModalBottomSheet(onDismissRequest = { showWorkspace = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         ProjectWorkspaceMenu(state.project, state.tab, state.workspace.selectedThread != null,
             onSelect = { if (it == WorkspaceTab.SESSIONS && state.workspace.selectedThread == null) vm.backToProjects() else vm.selectTab(it); showWorkspace = false },

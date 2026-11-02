@@ -15,5 +15,6 @@ GHub is distributed under GPL-3.0-only.
 | Lucide icons 0.468.0 (including Feather-derived artwork) | https://github.com/lucide-icons/lucide | ISC / MIT |
 | Haze 1.6.10 (Copyright Christopher Banes and contributors) | https://github.com/chrisbanes/haze | Apache-2.0 |
 | Coil | https://github.com/coil-kt/coil | Apache-2.0 |
+| JetBrains Mono (unchanged WOFF2 supplied with the task-board HTML) | https://github.com/JetBrains/JetBrainsMono | SIL Open Font License 1.1 |
 
 Termux source and resource files are vendored in the terminal module. Copyright and license headers are retained; the exact upstream revision and modifications are recorded in `terminal/UPSTREAM.md`. The upstream local-process/JNI session is replaced by a Kotlin remote-PTY adapter. No Termux runtime, package manager or shell binaries are bundled.

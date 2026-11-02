@@ -10,6 +10,7 @@ import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
 import java.io.File
+import org.json.JSONObject
 
 /** Uses an isolated SSH host and a local delayed Responses fixture, never a paid model. */
 @RunWith(AndroidJUnit4::class)
@@ -86,7 +87,9 @@ class SessionStatusDeviceTest {
                     assertTrue(vm.state.value.workspace.results.getValue(thread).unread)
 
                     // First open attaches once. Navigation thereafter reuses the same live subscription.
-                    withContext(Dispatchers.Main) { vm.openThread(thread) }
+                    val board = TaskBoardTestDriver { compose.activity }
+                    board.awaitReady()
+                    board.post(JSONObject().put("type", "openTask").put("hostId", profile.id).put("threadId", thread))
                     compose.waitUntil(20_000) { vm.state.value.workspace.selectedThread == thread &&
                         !vm.state.value.workspace.loadingHistory && vm.state.value.workspace.conversations[thread]?.items?.isNotEmpty() == true }
                     val resumed = vm.syncTimings.count("rpc.thread/resume.ok")

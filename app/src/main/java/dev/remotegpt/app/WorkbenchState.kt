@@ -16,7 +16,8 @@ enum class WorkspaceTab { SESSIONS, FILES, TERMINAL }
     val remotePath: String = "", val state: String = "uploading", val error: String? = null)
 @Serializable data class Draft(val text: String = "", val attachments: List<Attachment> = emptyList(), val delivery: String = "draft", val pendingId: String? = null,
     val model: String? = null, val effort: String? = null)
-data class PendingApproval(val request: ServerRequest, val submitted: Boolean = false)
+data class PendingApproval(val request: ServerRequest, val submitted: Boolean = false,
+    val receivedAt: Long = System.currentTimeMillis())
 data class TerminalTab(val id: String, val name: String, val session: TerminalSession, val projectPath: String = "")
 data class TerminalPreferences(val fontSize: Float = 14f, val extraKeys: Boolean = false)
 @Serializable data class ProjectProfile(val path: String, val name: String = projectName(path))
@@ -26,6 +27,11 @@ data class ProjectFiles(val path: String, val entries: List<RemoteFile> = emptyL
 data class ThreadProblem(val detail: String, val unavailable: Boolean = false)
 data class HostWorkspace(
     val connection: ConnectionStatus = ConnectionStatus.OFFLINE, val error: String? = null,
+    /** Authenticated SSH is usable independently of the optional Codex task service. */
+    val sshConnected: Boolean = false,
+    /** Unfiltered, recent task list for the board; null means no board discovery yet. */
+    val boardThreads: List<ThreadSummary>? = null, val boardNextThreads: String? = null,
+    val loadingBoard: Boolean = false, val lastSyncedAt: Long = 0,
     val reconnectAttempt: Int = 0,
     val serverVersion: String = "", val account: String = "", val needsBootstrap: Boolean = false,
     val threads: List<ThreadSummary> = emptyList(), val nextThreads: String? = null,

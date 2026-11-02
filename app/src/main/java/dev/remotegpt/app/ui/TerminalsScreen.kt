@@ -31,16 +31,17 @@ import dev.remotegpt.terminal.ViewCallbacks
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-@Composable fun TerminalsScreen(state: WorkbenchState, vm: WorkbenchViewModel, onWorkspace: () -> Unit = {}, onBottomControls: (Int) -> Unit = {}) {
+@Composable fun TerminalsScreen(state: WorkbenchState, vm: WorkbenchViewModel, onWorkspace: () -> Unit = {}, onBottomControls: (Int) -> Unit = {}, onBack: () -> Unit = vm::navigateBack) {
     val ws = state.workspace
-    LaunchedEffect(state.activeHost, ws.selectedProject, ws.connection) { vm.ensureTerminal() }
+    LaunchedEffect(state.activeHost, ws.selectedProject, ws.sshConnected) { vm.ensureTerminal() }
     TerminalPane(
         terminals = ws.terminals.filter { it.projectPath == ws.selectedProject }, selectedId = ws.selectedTerminal,
         project = state.project?.name ?: projectName(ws.selectedProject.orEmpty()), projectPath = ws.selectedProject.orEmpty(),
         connection = ws.connection, opening = ws.selectedProject in ws.openingTerminalProjects, preferences = state.terminalPreferences,
-        onBack = vm::navigateBack, onWorkspace = onWorkspace, onSelect = vm::selectTerminal,
+        onBack = onBack, onWorkspace = onWorkspace, onSelect = vm::selectTerminal,
         onNew = { vm.newTerminal() }, onClose = vm::closeTerminal, onConnect = { vm.connect() },
         onFontSize = vm::terminalFontSize, onExtraKeys = vm::terminalExtraKeys, onBottomControls = onBottomControls,
+        sshConnected = ws.sshConnected,
     )
 }
 
@@ -51,6 +52,7 @@ import kotlin.math.roundToInt
     onBack: () -> Unit, onWorkspace: () -> Unit, onSelect: (String) -> Unit,
     onNew: () -> Unit, onClose: (String) -> Unit, onConnect: () -> Unit,
     onFontSize: (Float) -> Unit, onExtraKeys: (Boolean) -> Unit, onBottomControls: (Int) -> Unit = {},
+    sshConnected: Boolean = connection == ConnectionStatus.ONLINE,
 ) {
     val selected = terminals.firstOrNull { it.id == selectedId } ?: terminals.firstOrNull()
     var switching by rememberSaveable { mutableStateOf(false) }
@@ -74,7 +76,7 @@ import kotlin.math.roundToInt
     var controlsHeight by remember { mutableIntStateOf(0) }
     LaunchedEffect(controlsHeight, keyboardHeight) { onBottomControls(controlsHeight + keyboardHeight) }
     val haptic = rememberHaptic()
-    val canCreate = connection == ConnectionStatus.ONLINE && !opening
+    val canCreate = sshConnected && !opening
     val inputEnabled = selected != null && running
     fun keyboard() {
         view?.let { terminal ->
@@ -105,7 +107,8 @@ import kotlin.math.roundToInt
                             style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Icon(WorkbenchIcons.ExpandMore, null, Modifier.padding(start = 4.dp).size(16.dp))
                     }
-                    Text(project + " · " + if (selected != null && !running) tr(R.string.terminal_ended) else connectionLabel(connection),
+                    Text(project + " · " + if (selected != null && !running) tr(R.string.terminal_ended)
+                        else if (sshConnected) tr(R.string.ui_ssh_connected) else connectionLabel(connection),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -136,8 +139,8 @@ import kotlin.math.roundToInt
                     } else EmptyPanel(WorkbenchIcons.Terminal, tr(R.string.ui_open_remote_terminal), tr(R.string.ui_supports_vim_tmux_and_common_terminal_programs))
                 }
                 Box(Modifier.fillMaxWidth().onSizeChanged { controlsHeight = it.height }.padding(16.dp), contentAlignment = Alignment.Center) {
-                    Button(onClick = if (connection == ConnectionStatus.ONLINE) onNew else onConnect, enabled = !opening && !connection.busy) {
-                        Text(tr(if (connection == ConnectionStatus.ONLINE) R.string.ui_new_terminal else R.string.ui_connect))
+                    Button(onClick = if (sshConnected) onNew else onConnect, enabled = !opening && (sshConnected || !connection.busy)) {
+                        Text(tr(if (sshConnected) R.string.ui_new_terminal else R.string.ui_connect))
                     }
                 }
             } else {
@@ -195,8 +198,8 @@ import kotlin.math.roundToInt
                 else Column(Modifier.fillMaxWidth().onSizeChanged { controlsHeight = it.height }.background(MaterialTheme.colorScheme.surface)) {
                     if (!running) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(tr(R.string.terminal_ended), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = if (connection == ConnectionStatus.ONLINE) onNew else onConnect, enabled = !opening && !connection.busy) {
-                            Text(tr(if (connection == ConnectionStatus.ONLINE) R.string.ui_new_terminal else R.string.ui_connect))
+                        TextButton(onClick = if (sshConnected) onNew else onConnect, enabled = !opening && (sshConnected || !connection.busy)) {
+                            Text(tr(if (sshConnected) R.string.ui_new_terminal else R.string.ui_connect))
                         }
                     }
                     TerminalKeyBar(modifiers, extraKeys && !compactInput, inputEnabled, ::sendKey,

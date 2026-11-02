@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN" data-color-mode="color">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
+  <title>GHub UI 对照 · 仅示例数据</title>
+  <link rel="stylesheet" href="../../src/main/assets/taskboard/board.css">
+  <link rel="stylesheet" href="preview.css">
+  <script src="preview-fixture.js" defer></script>
+  <script src="../../src/main/assets/taskboard/icons.js" defer></script>
+  <script src="../../src/main/assets/taskboard/board.js" defer></script>
+</head>
+<body>
+  <p class="preview-label">UI 对照 · 仅示例数据，不会连接服务器或执行命令。</p>
+  <div id="board" class="board">
+    <header class="header">
+      <span id="brand" class="brand" aria-hidden="true"></span>
+      <h1>任务看板</h1>
+      <button id="sync" class="button header-button sync-button" type="button"><span id="sync-icon" aria-hidden="true"></span><span>同步</span></button>
+      <button id="refresh" class="button header-button" type="button" aria-label="全屏重绘，尝试清除残影"><span id="refresh-icon" aria-hidden="true"></span><span>全刷</span></button>
+    </header>
+
+    <div class="filter-row">
+      <button id="filter" class="button filter-button" type="button" aria-haspopup="dialog"><span id="filter-label">全部服务器 · 全部项目</span><span id="filter-icon" aria-hidden="true"></span></button>
+      <div class="sync-meta" aria-live="polite" aria-atomic="true">
+        <span id="sync-time" class="sync-time">尚未同步</span>
+        <span id="sync-note" class="sync-note">每 5 分钟自动同步</span>
+      </div>
+    </div>
+
+    <nav id="tabs" class="tabs" aria-label="任务状态"></nav>
+    <main id="tasks" class="tasks" aria-label="等待确认" tabindex="-1"></main>
+
+    <footer class="footer">
+      <span id="page-label" class="page-label">第 1 / 1 页</span>
+      <span id="page-note" class="page-note">等待确认 · 0 项</span>
+      <div class="page-buttons">
+        <button id="previous" class="button page-button" type="button" disabled><span id="previous-icon" aria-hidden="true"></span><span>上一页</span></button>
+        <button id="next" class="button page-button" type="button" disabled><span>下一页</span><span id="next-icon" aria-hidden="true"></span></button>
+      </div>
+    </footer>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop" hidden>
+    <section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"></section>
+  </div>
+  <div id="announcement" class="announcement" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+  <div id="refresh-flash" class="refresh-flash" aria-hidden="true" hidden></div>
+</body>
+</html>

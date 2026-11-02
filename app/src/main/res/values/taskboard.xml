@@ -1,0 +1,7 @@
+<resources>
+    <string name="board_back">Back to task board</string>
+    <string name="board_unknown_host">This server no longer exists. Refresh the board.</string>
+    <string name="board_offline_task">Connect the task service before creating a task.</string>
+    <string name="board_ssh_offline">Connect SSH before opening the terminal or files.</string>
+    <string name="board_task_missing">This task is no longer in the current board. Refresh and try again.</string>
+</resources>

@@ -2,6 +2,8 @@
 
 ## 使用 GHub
 
+- [任务看板](taskboard.md)：本次 HTML 看板改造、OpenSSH、使用方法、构建与边界。
+- [任务看板验证记录](taskboard-verification.md)：已执行检查与尚未执行的 Android / 真机验证。
 - [快速开始与常见问题](getting-started.md)：安装、服务器配置、项目与会话、文件和终端。
 - [连接与同步](connection-recovery.md)：重连、后台保持、草稿和缓存的工作方式。
 - [版本更新](https://github.com/iawnix/GHub/releases)：APK 下载、更新说明和源码附件。

@@ -18,7 +18,8 @@ internal class ConversationMemoryBudget {
             } else false
         }
     }
-    private fun size(c: Conversation): Long = c.items.sumOf { item ->
+    private fun size(c: Conversation): Long = (c.planExplanation?.length?.toLong() ?: 0L) +
+        c.plan.sumOf { it.step.length.toLong() + it.status.length } + c.items.sumOf { item ->
         128L + item.text.length + item.imagePaths.sumOf { it.length.toLong() } +
             (item.commandExecution?.command?.length ?: 0) + (item.commandExecution?.workingDirectory?.length ?: 0) +
             item.fileEdits.sumOf { it.path.length.toLong() + it.diff.length }

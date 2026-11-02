@@ -8,7 +8,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import dev.remotegpt.app.ui.*
 
 class MainActivity : AppCompatActivity() {
@@ -20,14 +26,22 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContent {
             val state by vm.state.collectAsStateWithLifecycle()
-            val dark = state.theme == "dark" || (state.theme == "system" && isSystemInDarkTheme())
-            DisposableEffect(dark) {
+            var boardVisible by remember { mutableStateOf(true) }
+            val dark = !boardVisible && (state.theme == "dark" || (state.theme == "system" && isSystemInDarkTheme()))
+            DisposableEffect(dark, boardVisible) {
                 val bars = if (dark) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                     else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
                 enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    if (boardVisible) hide(WindowInsetsCompat.Type.systemBars())
+                    else show(WindowInsetsCompat.Type.systemBars())
+                }
                 onDispose {}
             }
-            WorkbenchTheme(state.theme) { Workbench(vm, state) }
+            WorkbenchTheme(state.theme) {
+                Workbench(vm, state, taskBoardEnabled = true, onBoardVisibility = { boardVisible = it })
+            }
         }
     }
     override fun onStart() { super.onStart(); vm.onForeground() }

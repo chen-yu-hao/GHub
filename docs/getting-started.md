@@ -1,5 +1,7 @@
 # 使用指南
 
+> 本文件保留上游工作台使用说明。本次 `0.2.0-taskboard` 的入口、安装方式与纯 SSH 行为以[任务看板指南](taskboard.md)为准；上游 Releases 的 APK 尚不包含本次改造。
+
 ## 安装
 
 从 [GitHub Releases](https://github.com/iawnix/GHub/releases/latest) 下载 `ghub.apk`，在 Android 10 或更新版本上安装。正式版使用相同签名，可直接覆盖升级。每个版本附带源码包和 `SHA256SUMS` 校验文件。

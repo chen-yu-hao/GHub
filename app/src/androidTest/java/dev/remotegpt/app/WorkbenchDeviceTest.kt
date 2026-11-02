@@ -14,15 +14,18 @@ import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
 import java.io.File
+import org.json.JSONObject
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(AndroidJUnit4::class)
 class WorkbenchDeviceTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    private val board get() = TaskBoardTestDriver { compose.activity }
 
     @Test fun emptyWorkspaceOffersHostSetupAndAccessibleEditor() {
-        compose.onNodeWithText(tr(R.string.ui_open_settings)).assertIsDisplayed().performClick()
-        compose.onAllNodesWithText(tr(R.string.ui_servers)).onLast().assertIsDisplayed().performClick()
+        board.awaitReady()
+        board.click("#filter")
+        board.clickText("管理 SSH 服务器")
         compose.onNodeWithText(tr(R.string.ui_add_server)).assertIsDisplayed().performClick()
         compose.onNodeWithText(tr(R.string.ui_connection_name)).assertIsDisplayed()
         compose.onNodeWithText(tr(R.string.ui_host_address)).performScrollTo().assertIsDisplayed()
@@ -31,7 +34,8 @@ class WorkbenchDeviceTest {
         compose.onNodeWithContentDescription(tr(R.string.ui_back_to_servers)).performClick()
         compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()
         compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()
-        compose.onNodeWithText(tr(R.string.ui_connect_your_development_machine)).assertIsDisplayed()
+        board.awaitReady()
+        board.awaitText("任务看板")
     }
 
     @Test fun serverSettingsPreserveTheActiveWorkspaceAcrossEditAndDelete() = runBlocking {
@@ -52,7 +56,9 @@ class WorkbenchDeviceTest {
             compose.runOnIdle { vm.openProject("/workspace/primary") }
             save(secondary)
             assertEquals(primary.id, vm.state.value.activeHost)
-            compose.onNodeWithContentDescription(tr(R.string.ui_settings)).performClick()
+            board.awaitReady()
+            board.click("#filter")
+            board.clickText("应用设置")
             compose.onNodeWithText(tr(R.string.ui_servers)).performClick()
             compose.onNodeWithText(secondary.name).performClick()
             assertEquals(primary.id, vm.state.value.activeHost)
@@ -148,6 +154,8 @@ class WorkbenchDeviceTest {
             android.util.Log.i("WorkbenchCheck", "connected; opening fixture")
             compose.runOnIdle { vm.openThread(thread) }
             compose.waitUntil(30_000) { vm.state.value.workspace.approvals.any { it.request.threadId == thread } }
+            board.awaitReady()
+            board.post(JSONObject().put("type", "openTask").put("hostId", profile.id).put("threadId", thread))
             android.util.Log.i("WorkbenchCheck", "approval received")
             val first = vm.state.value.workspace.approvals.single { it.request.threadId == thread }.request
             compose.runOnIdle { vm.disconnect(profile.id) }

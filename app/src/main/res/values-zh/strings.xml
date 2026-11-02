@@ -1,4 +1,10 @@
 <resources>
+    <string name="ui_ssh_connection" formatted="false">OpenSSH 连接</string>
+    <string name="ui_ssh_connected" formatted="false">SSH 已连接</string>
+    <string name="ui_ssh_disconnected" formatted="false">SSH 未连接</string>
+    <string name="ui_task_service" formatted="false">任务服务</string>
+    <string name="ui_ssh_without_task_service" formatted="false">SSH 已连接，可使用终端和 SFTP。任务同步需要远端运行 Codex App Server。</string>
+    <string name="ui_retry_task_service" formatted="false">重新连接任务服务</string>
     <string name="ui_0_164_0_and_newer_0_x" formatted="false">0.164.0 及更新的 0.x 版本</string>
     <string name="ui_keep_remote_connection_active" formatted="false">后台保持远程连接</string>
     <string name="ui_stop_keeping_alive" formatted="false">停止保持</string>

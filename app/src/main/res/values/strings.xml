@@ -1,4 +1,10 @@
 <resources>
+    <string name="ui_ssh_connection" formatted="false">OpenSSH connection</string>
+    <string name="ui_ssh_connected" formatted="false">SSH connected</string>
+    <string name="ui_ssh_disconnected" formatted="false">SSH disconnected</string>
+    <string name="ui_task_service" formatted="false">Task service</string>
+    <string name="ui_ssh_without_task_service" formatted="false">SSH is connected. Terminal and SFTP remain available. Task sync requires a running Codex App Server.</string>
+    <string name="ui_retry_task_service" formatted="false">Reconnect task service</string>
     <string name="ui_0_164_0_and_newer_0_x" formatted="false">0.164.0 and newer 0.x releases</string>
     <string name="ui_keep_remote_connection_active" formatted="false">Keep remote connection active</string>
     <string name="ui_stop_keeping_alive" formatted="false">Stop keeping alive</string>

@@ -97,9 +97,16 @@ data class TimelineItem(
 }
 
 @Serializable
+data class PlanStep(val step: String, val status: String)
+
+@Serializable
 data class Conversation(
     val threadId: String, val items: List<TimelineItem> = emptyList(), val activeTurn: String? = null,
     val nextCursor: String? = null, val status: String = "idle",
+    // Turn-scoped structured progress. Never infer progress from Markdown or item counts.
+    val latestTurnId: String? = null,
+    val planTurnId: String? = null, val plan: List<PlanStep> = emptyList(),
+    val planExplanation: String? = null,
 )
 
 data class ServerRequest(val epoch: String, val id: JsonElement, val method: String, val params: JsonObject) {

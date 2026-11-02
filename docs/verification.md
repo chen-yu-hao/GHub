@@ -1,5 +1,7 @@
 # 测试指南
 
+> 本次看板交付的实际执行结果见[任务看板验证记录](taskboard-verification.md)。以下为项目完整测试方法，不代表这些检查已在本次环境运行。
+
 GHub 使用 JVM 单元测试、Android 设备测试和隔离 SSH / Codex 集成测试。常规检查与正式发布复用同一套 [GitHub Actions 工作流](../.github/workflows/check.yml)。
 
 ## 本地常规检查

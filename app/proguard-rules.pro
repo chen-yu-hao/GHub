@@ -36,3 +36,8 @@
 -keep class kotlinx.coroutines.** { *; }
 -keep class dev.remotegpt.client.** { *; }
 -keep class kotlinx.serialization.** { *; }
+
+# The offline task board calls this small, allowlisted bridge from packaged JS.
+-keepclassmembers class dev.remotegpt.app.ui.TaskBoardBridge {
+    @android.webkit.JavascriptInterface <methods>;
+}

@@ -88,7 +88,7 @@ import dev.remotegpt.client.*
                 modifier = Modifier.imePadding(), bottomBar = {
                     Surface { Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedButton(onClick = close, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(tr(R.string.ui_back_to_files)) }
-                        Button(onClick = { vm.saveFile() }, enabled = ws.editorText != file.text && ws.connection == ConnectionStatus.ONLINE, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Icon(WorkbenchIcons.Save, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(tr(R.string.ui_save)) }
+                        Button(onClick = { vm.saveFile() }, enabled = ws.editorText != file.text && ws.sshConnected, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Icon(WorkbenchIcons.Save, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(tr(R.string.ui_save)) }
                     } }
                 }) { padding ->
                 OutlinedTextField(ws.editorText, vm::editorText, modifier = Modifier.fillMaxSize().padding(padding), textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace))

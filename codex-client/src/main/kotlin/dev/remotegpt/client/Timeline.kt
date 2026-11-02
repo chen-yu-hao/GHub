@@ -51,19 +51,48 @@ object Timeline {
         val active = turns.lastOrNull { it.string("status") == "inProgress" }
         return normalized(Conversation(threadId, turns.flatMap { turn ->
             turn.array("items").map { parseItem(it.jsonObject, turn.string("id").orEmpty(), turn.string("status") != "inProgress") }
-        }, active?.string("id"), page.string("nextCursor"), if (active != null) "active" else "idle"))
+        }, active?.string("id"), page.string("nextCursor"), if (active != null) "active" else "idle",
+            latestTurnId = turns.lastOrNull()?.string("id")))
     }
 
     fun notification(state: Conversation, method: String, params: JsonObject): Conversation {
         if (params.string("threadId") != state.threadId) return state
         return when (method) {
-            "turn/started" -> state.copy(activeTurn = params.obj("turn").string("id"), status = "active")
+            "turn/started" -> {
+                val id = params.obj("turn").string("id")?.takeIf { it.isNotBlank() } ?: return state
+                val samePlan = state.planTurnId == id
+                state.copy(activeTurn = id, status = "active", latestTurnId = id,
+                    planTurnId = state.planTurnId.takeIf { samePlan },
+                    plan = if (samePlan) state.plan else emptyList(),
+                    planExplanation = state.planExplanation.takeIf { samePlan })
+            }
+            "turn/plan/updated" -> {
+                val id = params.string("turnId")?.takeIf { it.isNotBlank() } ?: return state
+                // Late notifications from an older turn must not overwrite a new plan.
+                val latest = state.activeTurn ?: state.latestTurnId
+                if (latest != null && latest != id) return state
+                val rawPlan = params["plan"] as? JsonArray ?: return state
+                val plan = rawPlan.map { raw ->
+                    val entry = raw as? JsonObject ?: return state
+                    val step = entry.string("step") ?: return state
+                    val status = entry.string("status") ?: return state
+                    // Keep unknown statuses honest in the UI instead of treating them as complete.
+                    PlanStep(step, status)
+                }
+                state.copy(latestTurnId = latest ?: id, planTurnId = id, plan = plan,
+                    planExplanation = params.string("explanation"))
+            }
             "turn/completed" -> {
                 val turn = params.obj("turn")
-                val id = turn.string("id")
+                val id = turn.string("id")?.takeIf { it.isNotBlank() } ?: return state
                 var items = state.items.map { if (it.turnId == id) it.copy(complete = true) else it }
                 turn.array("items").forEach { raw -> items = upsert(items, parseItem(raw.jsonObject, id.orEmpty(), true)) }
-                state.copy(items = items, activeTurn = null, status = turn.string("status") ?: "completed")
+                if (state.activeTurn != null && state.activeTurn != id) state.copy(items = items)
+                else state.copy(items = items, activeTurn = null, status = turn.string("status") ?: "unknown",
+                    latestTurnId = id,
+                    planTurnId = state.planTurnId.takeIf { it == id },
+                    plan = if (state.planTurnId == id) state.plan else emptyList(),
+                    planExplanation = state.planExplanation.takeIf { state.planTurnId == id })
             }
             "thread/status/changed" -> state.copy(status = params.obj("status").string("type") ?: state.status)
             "item/started", "item/completed" -> state.copy(items = upsert(state.items,
@@ -103,11 +132,24 @@ object Timeline {
             }
         }
         val arrived = live.items.filter { it.identityKey !in snapshotIds && it.identityKey !in beforeItems }
+        val latestTurn = if (live.latestTurnId != before.latestTurnId) live.latestTurnId
+            else page.latestTurnId ?: live.latestTurnId
+        // History does not contain update_plan snapshots. Keep a live/cached plan only
+        // when it belongs to the latest turn confirmed by this refresh.
+        val planSource = when (latestTurn) {
+            null -> null
+            live.planTurnId -> live
+            page.planTurnId -> page
+            else -> null
+        }
         return normalized(page.copy(
             items = older + items + arrived,
             nextCursor = if (older.isNotEmpty()) live.nextCursor else page.nextCursor,
             activeTurn = if (live.activeTurn != before.activeTurn) live.activeTurn else page.activeTurn,
             status = if (live.status != before.status) live.status else page.status,
+            latestTurnId = latestTurn,
+            planTurnId = planSource?.planTurnId, plan = planSource?.plan ?: emptyList(),
+            planExplanation = planSource?.planExplanation,
         ))
     }
 

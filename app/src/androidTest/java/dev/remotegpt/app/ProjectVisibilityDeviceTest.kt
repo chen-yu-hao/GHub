@@ -40,6 +40,8 @@ class ProjectVisibilityDeviceTest {
             app.database.workbench().putThreads(listOf(ThreadRow(profile.id, thread.id, wireJson.encodeToString(thread))))
             app.database.workbench().putDraft(DraftRow(profile.id, thread.id, wireJson.encodeToString(Draft(text = "Keep this draft"))))
             val projectActions = app.getString(R.string.ui_actions_for_project, "Legitimate temporary project")
+            // Enter the native manager from the real board's project action.
+            TaskBoardTestDriver { compose.activity }.openProjects(profile.id)
             compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasContentDescription(projectActions))
             compose.onNodeWithContentDescription(projectActions).performClick()
             compose.onNodeWithText(app.getString(R.string.ui_hide_project)).performClick()

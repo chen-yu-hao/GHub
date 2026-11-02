@@ -1,0 +1,7 @@
+<resources>
+    <string name="board_back">返回任务看板</string>
+    <string name="board_unknown_host">服务器已移除，请刷新看板。</string>
+    <string name="board_offline_task">请先连接任务服务，再新建任务。</string>
+    <string name="board_ssh_offline">请先连接 SSH，再打开终端或文件。</string>
+    <string name="board_task_missing">此任务已不在当前看板中，请刷新后重试。</string>
+</resources>

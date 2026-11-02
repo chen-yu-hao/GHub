@@ -10,11 +10,11 @@ android {
     compileSdk = 36
     defaultConfig {
         applicationId = providers.gradleProperty("previewApplicationId").orElse("dev.remotegpt.app").get()
-        resValue("string", "app_name", if (providers.gradleProperty("previewApplicationId").isPresent) "GHub Preview" else "GHub")
+        resValue("string", "app_name", if (providers.gradleProperty("previewApplicationId").isPresent) "GHub 看板 Preview" else "GHub 任务看板")
         minSdk = 29
         targetSdk = 36
-        versionCode = 41
-        versionName = "0.1.40"
+        versionCode = 42
+        versionName = "0.2.0-taskboard"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testProguardFiles("proguard-test-rules.pro")
     }

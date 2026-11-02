@@ -8,6 +8,10 @@ import android.database.sqlite.SQLiteDatabase
 import android.graphics.Rect
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
+import android.app.Activity
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.WebView
 import org.json.JSONObject
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.remotegpt.client.*
@@ -16,6 +20,9 @@ import kotlinx.serialization.encodeToString
 import org.junit.*
 import org.junit.Assert.*
 import java.util.Base64
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 /** Run against the actual non-debuggable, R8-optimized release build. */
 class ReleaseRuntimeDeviceTest {
@@ -33,6 +40,9 @@ class ReleaseRuntimeDeviceTest {
         instrumentation.waitForIdleSync()
         assertFalse(activity.isFinishing)
         try {
+            // Exercise the packaged page and R8-preserved bridge before entering
+            // the existing native history/clipboard coverage.
+            openBoardProjects(activity, "release-code-fixture")
             click("release-code")
             click("Release code fixture")
             click(label("ui_failed_operations_view_details", 1))
@@ -89,6 +99,51 @@ class ReleaseRuntimeDeviceTest {
             }
         }
         Unit
+    }
+
+    private fun openBoardProjects(activity: Activity, hostId: String) {
+        val deadline = SystemClock.elapsedRealtime() + 20_000L
+        var opened = false
+        while (SystemClock.elapsedRealtime() < deadline && !opened) {
+            opened = evaluateBoard(activity, """
+                (function(){
+                  if(!window.TaskBoard || typeof window.GHubBoard.postMessage!=='function')return false;
+                  if(typeof window.GHubBoard.credential!=='undefined')throw new Error('Credential API exposed');
+                  if(document.getElementById('modal-backdrop').hidden)document.getElementById('filter').click();
+                  var select=document.querySelector('#modal select');
+                  if(!select || !Array.from(select.options).some(function(option){return option.value===${JSONObject.quote(hostId)};})){
+                    window.TaskBoard.closeDialog();return false;
+                  }
+                  select.value=${JSONObject.quote(hostId)};select.dispatchEvent(new Event('change',{bubbles:true}));
+                  var button=Array.from(document.querySelectorAll('#modal button')).find(function(node){return node.textContent.trim()==='项目与会话';});
+                  if(!button || button.disabled)return false;button.click();return true;
+                })()
+            """.trimIndent()) == "true"
+            if (!opened) SystemClock.sleep(100)
+        }
+        assertTrue("Optimized task board failed to load native host data or open projects through its bridge", opened)
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+    }
+
+    private fun evaluateBoard(activity: Activity, script: String): String? {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val answer = AtomicReference<String?>()
+        val callback = CountDownLatch(1)
+        var found = false
+        fun webView(view: View): WebView? {
+            if (view is WebView) return view
+            if (view is ViewGroup) repeat(view.childCount) { webView(view.getChildAt(it))?.let { child -> return child } }
+            return null
+        }
+        instrumentation.runOnMainSync {
+            webView(activity.window.decorView)?.let { view ->
+                found = true
+                view.evaluateJavascript(script) { value -> answer.set(value); callback.countDown() }
+            }
+        }
+        if (!found) return null
+        assertTrue("Optimized WebView JavaScript callback timed out", callback.await(10, TimeUnit.SECONDS))
+        return answer.get()
     }
 
     /** Seed the documented disk format, then interact only through Android's
