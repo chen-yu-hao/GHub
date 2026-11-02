@@ -27,7 +27,9 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val state by vm.state.collectAsStateWithLifecycle()
             var boardVisible by remember { mutableStateOf(true) }
-            val dark = !boardVisible && (state.theme == "dark" || (state.theme == "system" && isSystemInDarkTheme()))
+            // Keep the composable call structure stable when navigation changes system bars.
+            val systemDark = isSystemInDarkTheme()
+            val dark = !boardVisible && (state.theme == "dark" || (state.theme == "system" && systemDark))
             DisposableEffect(dark, boardVisible) {
                 val bars = if (dark) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                     else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
