@@ -59,10 +59,10 @@ internal class TaskBoardTestDriver(
     fun awaitJavascript(predicate: String, timeoutMillis: Long = 10_000) {
         var failure: Throwable? = null
         try {
-            // The native snapshot collector uses LaunchedEffect and delay. Its
-            // test clock must advance while WebView callbacks use real time.
+            // waitUntil advances mainClock for the native LaunchedEffect snapshot collector.
+            // Do not nest waitForIdle: a replaced Activity root can lose its awaited frame,
+            // preventing this predicate from returning to the bounded wait.
             compose.waitUntil(timeoutMillis) {
-                compose.waitForIdle()
                 try { evaluate(predicate) == "true" }
                 catch (error: AssertionError) { failure = error; false }
             }

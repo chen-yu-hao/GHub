@@ -10,6 +10,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.webkit.WebView
 import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.platform.app.InstrumentationRegistry
@@ -38,12 +39,25 @@ internal class TaskBoardGeometryDriver(
                 return JSONObject().put("left", location[0]).put("top", location[1])
                     .put("width", node.width).put("height", node.height)
             }
+            fun insetData(insets: Insets?): JSONObject = JSONObject()
+                .put("left", insets?.left ?: 0).put("top", insets?.top ?: 0)
+                .put("right", insets?.right ?: 0).put("bottom", insets?.bottom ?: 0)
             val owner = activity()
             val visible = Rect()
             val hasVisibleRect = view.getLocalVisibleRect(visible)
-            val insets = ViewCompat.getRootWindowInsets(view)?.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime(),
-            )
+            val insetTypes = WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime()
+            val rawRootInsets = ViewCompat.getRootWindowInsets(view)
+            // On API 29, the view-aware conversion supplies fullscreen/navigation visibility.
+            // A root-only wrapper can report the sizes of bars that are actually hidden.
+            val windowInsets = view.rootWindowInsets?.let { WindowInsetsCompat.toWindowInsetsCompat(it, view) }
+            @Suppress("DEPRECATION")
+            val systemUi = JSONObject().put("windowSystemUiVisibility", view.windowSystemUiVisibility)
+                .put("decorSystemUiVisibility", owner.window.decorView.systemUiVisibility)
+                .put("windowFlags", owner.window.attributes.flags)
+                .put("attached", view.isAttachedToWindow).put("hasWindowFocus", owner.hasWindowFocus())
+                .put("statusBarsVisible", windowInsets?.isVisible(WindowInsetsCompat.Type.statusBars()))
+                .put("navigationBarsVisible", windowInsets?.isVisible(WindowInsetsCompat.Type.navigationBars()))
+                .put("imeVisible", windowInsets?.isVisible(WindowInsetsCompat.Type.ime()))
             result = JSONObject()
                 .put("viewId", System.identityHashCode(view))
                 .put("activityId", System.identityHashCode(owner))
@@ -55,8 +69,9 @@ internal class TaskBoardGeometryDriver(
                 .put("measuredWidth", view.measuredWidth).put("measuredHeight", view.measuredHeight)
                 .put("visible", JSONObject().put("present", hasVisibleRect)
                     .put("left", visible.left).put("top", visible.top).put("right", visible.right).put("bottom", visible.bottom))
-                .put("insets", JSONObject().put("left", insets?.left ?: 0).put("top", insets?.top ?: 0)
-                    .put("right", insets?.right ?: 0).put("bottom", insets?.bottom ?: 0))
+                .put("insets", insetData(windowInsets?.getInsets(insetTypes)))
+                .put("rootInsetsWithoutView", insetData(rawRootInsets?.getInsets(insetTypes)))
+                .put("systemUi", systemUi)
                 .put("webViewVersion", WebView.getCurrentWebViewPackage()?.versionName ?: "unknown")
         }
         return result
@@ -65,18 +80,26 @@ internal class TaskBoardGeometryDriver(
     /** A rotation must finish on the new live Activity/WebView before reading CSS. */
     fun awaitViewport(widthDp: Int, heightDp: Int, previousViewId: Int? = null) {
         var previous = ""
-        var stable = 0
+        var stableSince = SystemClock.uptimeMillis()
         compose.waitUntil(20_000) {
-            compose.waitForIdle()
+            // waitUntil advances mainClock itself. waitForIdle can retain a root whose
+            // pending frame is lost when display configuration or rotation destroys it.
             val native = runCatching { nativeGeometry() }.getOrNull()
-            if (native == null) false else {
+            if (native == null) {
+                previous = ""
+                stableSince = SystemClock.uptimeMillis()
+                false
+            } else {
                 val root = native.getJSONObject("root")
                 val density = native.getDouble("density")
                 val view = native.getJSONObject("view")
-                val key = "${native.getInt("viewId")}:${root.getInt("width")}:${root.getInt("height")}:${view.getInt("width")}:${view.getInt("height")}:$density"
-                stable = if (key == previous) stable + 1 else 0
-                previous = key
-                stable >= 2 && abs(root.getInt("width") / density - widthDp) <= 2 &&
+                // Include Insets, window flags, focus and position, not only width/height.
+                val key = native.toString()
+                if (key != previous) { previous = key; stableSince = SystemClock.uptimeMillis() }
+                SystemClock.uptimeMillis() - stableSince >= 120 &&
+                    native.getJSONObject("systemUi").getBoolean("attached") &&
+                    native.getJSONObject("systemUi").getBoolean("hasWindowFocus") &&
+                    abs(root.getInt("width") / density - widthDp) <= 2 &&
                     abs(root.getInt("height") / density - heightDp) <= 2 &&
                     view.getInt("width") > 0 && view.getInt("height") > 0 &&
                     (previousViewId == null || native.getInt("viewId") != previousViewId)
@@ -152,7 +175,6 @@ internal class TaskBoardGeometryDriver(
         pointer(started, MotionEvent.ACTION_DOWN, point.first, point.second)
         SystemClock.sleep(32)
         pointer(started, MotionEvent.ACTION_UP, point.first, point.second)
-        compose.waitForIdle()
         awaitFrame()
     }
 
@@ -190,7 +212,7 @@ internal class TaskBoardGeometryDriver(
         var previous = ""
         var stableSince = SystemClock.uptimeMillis()
         compose.waitUntil(5_000) {
-            compose.waitForIdle()
+            // The bounded wait advances Compose; the condition observes the real WebView.
             val current = board.evaluate("[window.scrollX,window.scrollY,document.getElementById('tasks').scrollTop].join(',')")
             if (current != previous) { previous = current; stableSince = SystemClock.uptimeMillis() }
             SystemClock.uptimeMillis() - stableSince >= 120

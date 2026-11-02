@@ -3,6 +3,7 @@ package dev.remotegpt.app
 import android.app.UiAutomation
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.os.SystemClock
 import android.util.Log
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,6 +28,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** Real MainActivity, Room/Settings fixtures, Android display rotation and touchscreen input. */
 @RunWith(AndroidJUnit4::class)
@@ -45,9 +47,15 @@ class TaskBoardLayoutDeviceTest {
         val profile = HostProfile(name = "布局回归服务器", endpoint = SshEndpoint("geometry.invalid", username = "fixture"))
         var failure: Throwable? = null
         var stage = "setup"
+        var originalViewport: Pair<Int, Int>? = null
         try {
             seedCachedTasks(app, profile)
             board.observeNativeSnapshots()
+            val initial = geometry.nativeGeometry()
+            val initialRoot = initial.getJSONObject("root")
+            val initialDensity = initial.getDouble("density")
+            originalViewport = (initialRoot.getDouble("width") / initialDensity).roundToInt() to
+                (initialRoot.getDouble("height") / initialDensity).roundToInt()
             withContext(Dispatchers.Main) { vm.saveProfile(profile, emptyMap()) }.join()
             compose.waitUntil(10_000) {
                 vm.state.value.workspaces[profile.id]?.conversations?.get("geometry-failed-long")?.items?.isNotEmpty() == true
@@ -66,78 +74,99 @@ class TaskBoardLayoutDeviceTest {
             for (size in listOf(DisplayProfile("reference", 1264, 1680, 632, 840, false),
                 DisplayProfile("short", 720, 1280, 360, 640, true))) {
                 stage = "${size.name}-configure"
-                display.configure(size.widthPx, size.heightPx)
-                // wm size and density can each recreate the Activity and reconfigure SystemUI.
-                // First wait for the final display, then let the normal onCreate reapply immersion.
-                geometry.awaitViewport(size.widthDp, size.heightDp)
-                val configuredViewId = geometry.nativeGeometry().getInt("viewId")
-                compose.activityRule.scenario.recreate()
-                geometry.awaitViewport(size.widthDp, size.heightDp, configuredViewId)
+                phase(stage) {
+                    display.configure(size.widthPx, size.heightPx)
+                    // wm size and density can each recreate the Activity and reconfigure SystemUI.
+                    // First wait for the final display, then let the normal onCreate reapply immersion.
+                    geometry.awaitViewport(size.widthDp, size.heightDp)
+                    val configuredViewId = geometry.nativeGeometry().getInt("viewId")
+                    compose.activityRule.scenario.recreate()
+                    geometry.awaitViewport(size.widthDp, size.heightDp, configuredViewId)
+                }
                 for ((index, rotation) in listOf(UiAutomation.ROTATION_FREEZE_0, UiAutomation.ROTATION_FREEZE_90, UiAutomation.ROTATION_FREEZE_0).withIndex()) {
                     val landscape = rotation == UiAutomation.ROTATION_FREEZE_90
                     stage = "${size.name}-" + if (landscape) "landscape" else if (index == 0) "portrait" else "portrait-return"
-                    val oldId = if (index == 0) null else geometry.nativeGeometry().getInt("viewId")
-                    assertTrue("Emulator did not accept display rotation", automation.setRotation(rotation))
                     val width = if (landscape) size.heightDp else size.widthDp
                     val height = if (landscape) size.widthDp else size.heightDp
-                    geometry.awaitViewport(width, height, oldId)
-                    geometry.resetScroll()
-                    assertLayout(geometry.geometry(), width, height, size.documentScroll)
+                    phase("$stage-viewport") {
+                        val oldId = if (index == 0) null else geometry.nativeGeometry().getInt("viewId")
+                        assertTrue("Emulator did not accept display rotation", automation.setRotation(rotation))
+                        geometry.awaitViewport(width, height, oldId)
+                        geometry.resetScroll()
+                        assertLayout(geometry.geometry(), width, height, size.documentScroll)
+                    }
                     observedModes += if (size.documentScroll) "document" else "tasks"
 
                     // Both real paging buttons and the newly rendered first row must be reachable.
-                    geometry.tap("#tabs button[data-state='done']")
-                    board.awaitJavascript("document.querySelectorAll('#tasks .completed-task').length===7")
-                    geometry.awaitScrollStable()
-                    geometry.scrollUntilVisible("#next", size.documentScroll)
-                    geometry.tap("#next")
-                    board.awaitJavascript("document.getElementById('page-label').textContent.indexOf('2 / 2')>=0")
-                    geometry.awaitScrollStable()
-                    geometry.assertVisibleAndHit("#tasks .completed-task:first-child")
-                    geometry.scrollUntilVisible("#previous", size.documentScroll)
-                    geometry.tap("#previous")
-                    board.awaitJavascript("document.getElementById('page-label').textContent.indexOf('1 / 2')>=0")
-                    geometry.awaitScrollStable()
-                    geometry.assertVisibleAndHit("#tasks .completed-task:first-child")
-
-                    geometry.resetScroll()
-                    geometry.tap("#tabs button[data-state='failed']")
-                    board.awaitJavascript("document.querySelectorAll('#tasks .task-card').length===2 && document.getElementById('tasks').textContent.indexOf('GEOMETRY_LINE_40')>=0")
-                    geometry.resetScroll()
-                    val before = geometry.geometry()
-                    assertLayout(before, width, height, size.documentScroll)
-                    geometry.capture("$stage-top", before.put("expectedWidthDp", width).put("expectedHeightDp", height), display.diagnostics)
-                    val scrollport = before.getJSONObject("web").getJSONObject(if (size.documentScroll) "document" else "tasks")
-                    assertTrue("Fixture must exercise real overflow: $before", scrollport.getDouble("scrollHeight") > scrollport.getDouble("clientHeight") + 20)
-                    val start = geometry.scrollPosition(size.documentScroll)
-                    geometry.swipeUp(size.documentScroll)
-                    assertTrue("A real swipe must scroll the intended container", geometry.scrollPosition(size.documentScroll) > start + 2)
-                    val lastAction = "#tasks .task-card:last-child .card-actions button"
-                    geometry.scrollUntilVisible(lastAction, size.documentScroll)
-                    geometry.scrollUntilVisible(".footer", size.documentScroll)
-                    geometry.assertVisibleAndHit(lastAction)
-                    geometry.assertVisibleAndHit("#previous")
-                    geometry.assertVisibleAndHit("#next")
-                    val after = geometry.geometry()
-                    assertNoHorizontalOverflow(after)
-                    if (size.documentScroll) {
-                        near("Short-screen tasks must not become a nested vertical scroller", 0.0, after.web("tasks").getDouble("scrollTop"))
-                    } else {
-                        near("Only the task list scrolls on the reference viewport", 0.0, after.web("document").getDouble("scrollTop"))
-                        for (name in listOf("header", "tabs", "footer")) near("$name moved with task content", before.web(name).getDouble("top"), after.web(name).getDouble("top"))
+                    phase("$stage-paging") {
+                        geometry.tap("#tabs button[data-state='done']")
+                        board.awaitJavascript("document.querySelectorAll('#tasks .completed-task').length===7")
+                        geometry.awaitScrollStable()
+                        geometry.scrollUntilVisible("#next", size.documentScroll)
+                        geometry.tap("#next")
+                        board.awaitJavascript("document.getElementById('page-label').textContent.indexOf('2 / 2')>=0")
+                        geometry.awaitScrollStable()
+                        geometry.assertVisibleAndHit("#tasks .completed-task:first-child")
+                        geometry.scrollUntilVisible("#previous", size.documentScroll)
+                        geometry.tap("#previous")
+                        board.awaitJavascript("document.getElementById('page-label').textContent.indexOf('1 / 2')>=0")
+                        geometry.awaitScrollStable()
+                        geometry.assertVisibleAndHit("#tasks .completed-task:first-child")
                     }
-                    geometry.capture("$stage-scrolled", after.put("expectedWidthDp", width).put("expectedHeightDp", height), display.diagnostics)
+
+                    val before = phase("$stage-scroll-prepare") {
+                        geometry.resetScroll()
+                        geometry.tap("#tabs button[data-state='failed']")
+                        board.awaitJavascript("document.querySelectorAll('#tasks .task-card').length===2 && document.getElementById('tasks').textContent.indexOf('GEOMETRY_LINE_40')>=0")
+                        geometry.resetScroll()
+                        geometry.geometry().also { assertLayout(it, width, height, size.documentScroll) }
+                    }
+                    phase("$stage-capture-top") {
+                        geometry.capture("$stage-top", before.put("expectedWidthDp", width).put("expectedHeightDp", height), display.diagnostics)
+                    }
+                    val after = phase("$stage-scroll") {
+                        val scrollport = before.getJSONObject("web").getJSONObject(if (size.documentScroll) "document" else "tasks")
+                        assertTrue("Fixture must exercise real overflow: $before", scrollport.getDouble("scrollHeight") > scrollport.getDouble("clientHeight") + 20)
+                        val start = geometry.scrollPosition(size.documentScroll)
+                        geometry.swipeUp(size.documentScroll)
+                        assertTrue("A real swipe must scroll the intended container", geometry.scrollPosition(size.documentScroll) > start + 2)
+                        val lastAction = "#tasks .task-card:last-child .card-actions button"
+                        geometry.scrollUntilVisible(lastAction, size.documentScroll)
+                        geometry.scrollUntilVisible(".footer", size.documentScroll)
+                        geometry.assertVisibleAndHit(lastAction)
+                        geometry.assertVisibleAndHit("#previous")
+                        geometry.assertVisibleAndHit("#next")
+                        geometry.geometry().also { data ->
+                            assertNoHorizontalOverflow(data)
+                            if (size.documentScroll) {
+                                near("Short-screen tasks must not become a nested vertical scroller", 0.0, data.web("tasks").getDouble("scrollTop"))
+                            } else {
+                                near("Only the task list scrolls on the reference viewport", 0.0, data.web("document").getDouble("scrollTop"))
+                                for (name in listOf("header", "tabs", "footer")) near("$name moved with task content", before.web(name).getDouble("top"), data.web(name).getDouble("top"))
+                            }
+                        }
+                    }
+                    phase("$stage-capture-scrolled") {
+                        geometry.capture("$stage-scrolled", after.put("expectedWidthDp", width).put("expectedHeightDp", height), display.diagnostics)
+                    }
                     geometry.resetScroll()
                 }
             }
             assertEquals("Both actual scrolling modes must be exercised", setOf("document", "tasks"), observedModes)
         } catch (error: Throwable) {
             failure = error
-            runCatching { geometry.capture("$stage-failure", displayConfiguration = display.diagnostics) }.exceptionOrNull()?.let(error::addSuppressed)
+            runCatching {
+                phase("$stage-capture-failure") { geometry.capture("$stage-failure", displayConfiguration = display.diagnostics) }
+            }.exceptionOrNull()?.let(error::addSuppressed)
             throw error
         } finally {
             val cleanupErrors = mutableListOf<Throwable>()
-            runCatching { display.restore() }.exceptionOrNull()?.let(cleanupErrors::add)
+            runCatching {
+                phase("restore") {
+                    display.restore()
+                    originalViewport?.let { (width, height) -> geometry.awaitViewport(width, height) }
+                }
+            }.exceptionOrNull()?.let(cleanupErrors::add)
             runCatching {
                 withContext(Dispatchers.Main) { vm.deleteProfile(profile) }.join()
                 app.settings.results(profile.id, emptyMap())
@@ -150,6 +179,17 @@ class TaskBoardLayoutDeviceTest {
                 cleanupErrors.drop(1).forEach(cleanupErrors.first()::addSuppressed)
                 throw cleanupErrors.first()
             }
+        }
+    }
+
+    private inline fun <T> phase(name: String, action: () -> T): T {
+        val started = SystemClock.uptimeMillis()
+        Log.i("TaskBoardTest", "phase.begin $name")
+        return try {
+            action().also { Log.i("TaskBoardTest", "phase.end $name elapsedMs=${SystemClock.uptimeMillis() - started}") }
+        } catch (error: Throwable) {
+            Log.e("TaskBoardTest", "phase.failed $name elapsedMs=${SystemClock.uptimeMillis() - started}", error)
+            throw error
         }
     }
 

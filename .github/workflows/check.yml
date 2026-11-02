@@ -38,6 +38,7 @@ jobs:
             app/build/reports/
   device:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -82,7 +83,7 @@ jobs:
             adb shell settings put secure immersive_mode_confirmations confirmed
             adb shell wm size
             adb shell wm density
-            ./gradlew :app:connectedDebugAndroidTest
+            bash scripts/run-device-tests.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
