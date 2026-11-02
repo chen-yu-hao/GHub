@@ -2,8 +2,11 @@ package dev.remotegpt.app
 
 import android.app.Activity
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.junit4.ComposeTestRule
@@ -27,6 +30,10 @@ internal class TaskBoardTestDriver(
         instrumentation.runOnMainSync {
             try {
                 val view = find(activity().window.decorView) ?: throw AssertionError("Task-board WebView is not mounted")
+                if (view.webChromeClient !is BoardTestConsole) {
+                    view.webChromeClient = BoardTestConsole()
+                    Log.i("TaskBoardTest", "Observing WebView ${System.identityHashCode(view)}")
+                }
                 action(view)
             } catch (error: Throwable) { failure = error }
         }
@@ -122,5 +129,18 @@ internal class TaskBoardTestDriver(
         if (view is WebView) return view
         if (view is ViewGroup) repeat(view.childCount) { find(view.getChildAt(it))?.let { found -> return found } }
         return null
+    }
+}
+
+/** Keep production JavaScript exceptions visible in the device test's logcat artifact. */
+private class BoardTestConsole : WebChromeClient() {
+    override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+        val priority = when (message.messageLevel()) {
+            ConsoleMessage.MessageLevel.ERROR -> Log.ERROR
+            ConsoleMessage.MessageLevel.WARNING -> Log.WARN
+            else -> Log.INFO
+        }
+        Log.println(priority, "TaskBoardTest", "JavaScript ${message.sourceId()}:${message.lineNumber()}: ${message.message()}")
+        return true
     }
 }

@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -36,6 +37,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import dev.remotegpt.app.ConnectionStatus
+import dev.remotegpt.app.BuildConfig
 import dev.remotegpt.app.WorkbenchState
 import dev.remotegpt.app.WorkbenchViewModel
 import dev.remotegpt.app.board.TaskBoardAction
@@ -49,6 +51,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.serialization.json.JsonPrimitive
 
 private const val BOARD_URL = "https://appassets.androidplatform.net/taskboard/index.html"
+private const val BOARD_NAVIGATION_TAG = "TaskBoardNavigation"
 
 /** The supplied HTML is the actual app UI, served entirely from packaged assets. */
 @SuppressLint("SetJavaScriptEnabled")
@@ -68,11 +71,21 @@ internal fun TaskBoardScreen(
     val bridge: TaskBoardBridge = remember {
         TaskBoardBridge { message ->
             // Dialog visibility has no native side effect; keep Android Back inside the filter/approval dialog.
-            if (message == "{\"type\":\"dialogOpened\"}") dialogOpen = true
-            else if (message == "{\"type\":\"dialogClosed\"}") dialogOpen = false
-            else parseTaskBoardAction(message)?.let { action ->
-                if (action.type == "refresh") webView?.invalidate()
-                latestAction(action)
+            if (message == "{\"type\":\"dialogOpened\"}") {
+                dialogOpen = true
+                if (BuildConfig.DEBUG) Log.d(BOARD_NAVIGATION_TAG, "bridge.dialog type=dialogOpened dialogOpen=true")
+            } else if (message == "{\"type\":\"dialogClosed\"}") {
+                dialogOpen = false
+                if (BuildConfig.DEBUG) Log.d(BOARD_NAVIGATION_TAG, "bridge.dialog type=dialogClosed dialogOpen=false")
+            } else {
+                val action = parseTaskBoardAction(message)
+                if (BuildConfig.DEBUG) Log.d(BOARD_NAVIGATION_TAG,
+                    if (action == null) "bridge.parse accepted=false" else "bridge.parse accepted=true type=${action.type}")
+                action?.let {
+                    if (it.type == "refresh") webView?.invalidate()
+                    latestAction(it)
+                    if (BuildConfig.DEBUG) Log.d(BOARD_NAVIGATION_TAG, "bridge.dispatch.complete type=${it.type}")
+                }
             }
         }
     }
@@ -206,8 +219,16 @@ private class TaskBoardBridge(private val receive: (String) -> Unit) {
     private val main = Handler(Looper.getMainLooper())
     @Volatile private var closed = false
     @JavascriptInterface fun postMessage(message: String) {
+        if (BuildConfig.DEBUG) Log.d(BOARD_NAVIGATION_TAG, "bridge.received length=${message.length} closed=$closed")
         if (closed || message.length > 16_384) return
-        main.post { if (!closed) receive(message) }
+        main.post {
+            if (BuildConfig.DEBUG) Log.d(BOARD_NAVIGATION_TAG, "bridge.main closed=$closed")
+            if (!closed) receive(message)
+        }
     }
-    fun close() { closed = true; main.removeCallbacksAndMessages(null) }
+    fun close() {
+        if (BuildConfig.DEBUG) Log.d(BOARD_NAVIGATION_TAG, "bridge.close alreadyClosed=$closed")
+        closed = true
+        main.removeCallbacksAndMessages(null)
+    }
 }

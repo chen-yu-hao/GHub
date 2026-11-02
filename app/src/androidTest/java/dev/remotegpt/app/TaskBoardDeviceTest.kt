@@ -41,6 +41,19 @@ class TaskBoardDeviceTest {
         board.awaitText("任务看板")
     }
 
+    @Test fun directNativeBridgeHostsActionOpensHostManagementAndReturnsToBoard() {
+        board.awaitReady()
+        // Compare the same allowlisted action without the modal's close/focus handler.
+        board.post(JSONObject().put("type", "hosts"))
+        compose.waitUntil { compose.onAllNodesWithText(tr(R.string.ui_add_server)).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(tr(R.string.ui_add_server)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()
+        compose.onNodeWithText(tr(R.string.ui_servers)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(tr(R.string.ui_back)).performClick()
+        board.awaitReady()
+        board.awaitText("任务看板")
+    }
+
     @Test fun nativeSnapshotAppearsAndCredentialsStayOutsideWebViewAcrossRecreation() = runBlocking {
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as RemoteApplication
         val vm = app.workbench()

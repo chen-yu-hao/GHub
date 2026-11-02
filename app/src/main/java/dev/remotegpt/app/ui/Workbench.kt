@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -105,7 +106,20 @@ import kotlinx.coroutines.launch
     val showConversation = state.tab == WorkspaceTab.SESSIONS && state.workspace.selectedThread != null
     val showHome = !showConversation && state.tab == WorkspaceTab.SESSIONS
     val showBoard = taskBoardEnabled && boardVisible
-    SideEffect { onBoardVisibility(showBoard && editProfile == null && !showSettings && !showHostList && settingsHost == null) }
+    val navigationDebugInstance = if (BuildConfig.DEBUG) remember { Any() } else null
+    if (BuildConfig.DEBUG) DisposableEffect(Unit) {
+        Log.d("TaskBoardNavigation",
+            "workbench.mount instance=${System.identityHashCode(navigationDebugInstance)} showBoard=${taskBoardEnabled && boardVisible} showHosts=$showHosts showSettings=$showSettings")
+        onDispose {
+            Log.d("TaskBoardNavigation",
+                "workbench.dispose instance=${System.identityHashCode(navigationDebugInstance)} showBoard=${taskBoardEnabled && boardVisible} showHosts=$showHosts showSettings=$showSettings")
+        }
+    }
+    SideEffect {
+        if (BuildConfig.DEBUG) Log.d("TaskBoardNavigation",
+            "workbench.composed instance=${System.identityHashCode(navigationDebugInstance)} boardVisible=$showBoard showHostList=$showHostList showSettings=$showSettings showHostDetail=$showHostDetail hasEditor=${editProfile != null}")
+        onBoardVisibility(showBoard && editProfile == null && !showSettings && !showHostList && settingsHost == null)
+    }
     fun returnFromWorkspace() {
         if (state.tab != WorkspaceTab.SESSIONS && state.workspace.selectedThread != null) {
             vm.navigateBack()
@@ -125,6 +139,8 @@ import kotlinx.coroutines.launch
         }
     }
     fun boardAction(action: TaskBoardAction) {
+        if (BuildConfig.DEBUG) Log.d("TaskBoardNavigation",
+            "workbench.enter instance=${System.identityHashCode(navigationDebugInstance)} type=${action.type} boardVisible=$boardVisible showHosts=$showHosts showSettings=$showSettings")
         when (action.type) {
             "ready", "refresh" -> Unit
             "sync" -> vm.refreshBoard()
@@ -174,6 +190,8 @@ import kotlinx.coroutines.launch
                 }
             }
         }
+        if (BuildConfig.DEBUG) Log.d("TaskBoardNavigation",
+            "workbench.navigation instance=${System.identityHashCode(navigationDebugInstance)} type=${action.type} boardVisible=$boardVisible showHosts=$showHosts showSettings=$showSettings showProjectEditor=$showProjectEditor")
     }
     val crashScreen = when {
         editProfile != null -> CrashScreen.HOST_EDITOR
