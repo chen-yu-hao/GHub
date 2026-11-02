@@ -3,6 +3,7 @@ package dev.remotegpt.app
 import android.app.UiAutomation
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -66,6 +67,12 @@ class TaskBoardLayoutDeviceTest {
                 DisplayProfile("short", 720, 1280, 360, 640, true))) {
                 stage = "${size.name}-configure"
                 display.configure(size.widthPx, size.heightPx)
+                // wm size and density can each recreate the Activity and reconfigure SystemUI.
+                // First wait for the final display, then let the normal onCreate reapply immersion.
+                geometry.awaitViewport(size.widthDp, size.heightDp)
+                val configuredViewId = geometry.nativeGeometry().getInt("viewId")
+                compose.activityRule.scenario.recreate()
+                geometry.awaitViewport(size.widthDp, size.heightDp, configuredViewId)
                 for ((index, rotation) in listOf(UiAutomation.ROTATION_FREEZE_0, UiAutomation.ROTATION_FREEZE_90, UiAutomation.ROTATION_FREEZE_0).withIndex()) {
                     val landscape = rotation == UiAutomation.ROTATION_FREEZE_90
                     stage = "${size.name}-" + if (landscape) "landscape" else if (index == 0) "portrait" else "portrait-return"
@@ -99,7 +106,7 @@ class TaskBoardLayoutDeviceTest {
                     geometry.resetScroll()
                     val before = geometry.geometry()
                     assertLayout(before, width, height, size.documentScroll)
-                    geometry.capture("$stage-top", before.put("expectedWidthDp", width).put("expectedHeightDp", height))
+                    geometry.capture("$stage-top", before.put("expectedWidthDp", width).put("expectedHeightDp", height), display.diagnostics)
                     val scrollport = before.getJSONObject("web").getJSONObject(if (size.documentScroll) "document" else "tasks")
                     assertTrue("Fixture must exercise real overflow: $before", scrollport.getDouble("scrollHeight") > scrollport.getDouble("clientHeight") + 20)
                     val start = geometry.scrollPosition(size.documentScroll)
@@ -119,14 +126,14 @@ class TaskBoardLayoutDeviceTest {
                         near("Only the task list scrolls on the reference viewport", 0.0, after.web("document").getDouble("scrollTop"))
                         for (name in listOf("header", "tabs", "footer")) near("$name moved with task content", before.web(name).getDouble("top"), after.web(name).getDouble("top"))
                     }
-                    geometry.capture("$stage-scrolled", after.put("expectedWidthDp", width).put("expectedHeightDp", height))
+                    geometry.capture("$stage-scrolled", after.put("expectedWidthDp", width).put("expectedHeightDp", height), display.diagnostics)
                     geometry.resetScroll()
                 }
             }
             assertEquals("Both actual scrolling modes must be exercised", setOf("document", "tasks"), observedModes)
         } catch (error: Throwable) {
             failure = error
-            runCatching { geometry.capture("$stage-failure") }.exceptionOrNull()?.let(error::addSuppressed)
+            runCatching { geometry.capture("$stage-failure", displayConfiguration = display.diagnostics) }.exceptionOrNull()?.let(error::addSuppressed)
             throw error
         } finally {
             val cleanupErrors = mutableListOf<Throwable>()
@@ -236,15 +243,34 @@ class TaskBoardLayoutDeviceTest {
     private data class DisplayProfile(val name: String, val widthPx: Int, val heightPx: Int, val widthDp: Int, val heightDp: Int, val documentScroll: Boolean)
 
     private inner class DisplaySettings {
-        private val oldSize = Regex("Override size: (\\d+x\\d+)").find(shell("wm size"))?.groupValues?.get(1)
-        private val oldDensity = Regex("Override density: (\\d+)").find(shell("wm density"))?.groupValues?.get(1)
+        private val initialSizeReport = shell("wm size").trim()
+        private val initialDensityReport = shell("wm density").trim()
+        private val oldSize = Regex("Override size: (\\d+x\\d+)").find(initialSizeReport)?.groupValues?.get(1)
+        private val oldDensity = Regex("Override density: (\\d+)").find(initialDensityReport)?.groupValues?.get(1)
         private val oldAutoRotate = shell("settings get system accelerometer_rotation").trim()
         private val oldUserRotation = shell("settings get system user_rotation").trim()
+        var diagnostics: JSONObject = JSONObject().put("initialSizeReport", initialSizeReport).put("initialDensityReport", initialDensityReport)
+            private set
         fun configure(width: Int, height: Int) {
+            val requestedSize = "${width}x$height"
+            diagnostics = JSONObject().put("initialSizeReport", initialSizeReport).put("initialDensityReport", initialDensityReport)
+                .put("requestedSize", requestedSize).put("requestedDensity", 320)
             assertTrue(automation.setRotation(UiAutomation.ROTATION_FREEZE_0))
-            shell("wm size ${width}x$height")
-            shell("wm density 320")
+            diagnostics.put("sizeCommandOutput", shell("wm size $requestedSize").trim())
+            diagnostics.put("densityCommandOutput", shell("wm density 320").trim())
+            val sizeReport = shell("wm size").trim()
+            val densityReport = shell("wm density").trim()
+            val effectiveSize = effectiveValue(sizeReport, "size", "\\d+x\\d+")
+            val effectiveDensity = effectiveValue(densityReport, "density", "\\d+")
+            diagnostics.put("sizeReport", sizeReport).put("densityReport", densityReport)
+                .put("effectiveSize", effectiveSize).put("effectiveDensity", effectiveDensity)
+            Log.i("TaskBoardTest", "Display configuration: $diagnostics")
+            assertEquals("wm size was rejected or clamped; use a larger physical AVD profile. $diagnostics", requestedSize, effectiveSize)
+            assertEquals("wm density did not accept the requested profile. $diagnostics", "320", effectiveDensity)
         }
+        private fun effectiveValue(report: String, kind: String, pattern: String): String? =
+            Regex("Override $kind: ($pattern)").find(report)?.groupValues?.get(1)
+                ?: Regex("Physical $kind: ($pattern)").find(report)?.groupValues?.get(1)
         fun restore() {
             val errors = mutableListOf<Throwable>()
             for (operation in listOf<() -> Unit>(

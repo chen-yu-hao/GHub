@@ -222,13 +222,14 @@ internal class TaskBoardGeometryDriver(
         assertVisibleAndHit(selector)
     }
 
-    fun capture(label: String, measured: JSONObject? = null) {
+    fun capture(label: String, measured: JSONObject? = null, displayConfiguration: JSONObject? = null) {
         val args = InstrumentationRegistry.getArguments()
         val folder = args.getString("additionalTestOutputDir")?.takeIf { it.isNotBlank() }?.let(::File)
             ?: File(instrumentation.targetContext.externalMediaDirs.first(), "additional_test_output")
         check(folder.isDirectory || folder.mkdirs()) { "Cannot create test evidence directory: $folder" }
         val name = "taskboard-api${Build.VERSION.SDK_INT}-" + label.replace(Regex("[^A-Za-z0-9_-]"), "_")
         val data = measured ?: runCatching { geometry() }.getOrElse { JSONObject().put("geometryError", it.toString()) }
+        displayConfiguration?.let { data.put("displayConfiguration", it) }
         File(folder, "$name.json").writeText(data.put("label", label).put("api", Build.VERSION.SDK_INT).toString(2))
         val bitmap = checkNotNull(instrumentation.uiAutomation.takeScreenshot()) { "Screenshot unavailable: $name" }
         try { File(folder, "$name.png").outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) } }

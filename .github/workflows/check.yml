@@ -66,9 +66,13 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Verify layout-test hardware profile
+        run: avdmanager list device | grep -F '"pixel_2"'
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api }}
+          # API 29 clamps wm size to twice the physical display dimensions.
+          profile: pixel_2
           disk-size: 2048M
           emulator-options: -no-window -gpu lavapipe -no-snapshot -noaudio -no-boot-anim -camera-back none
           arch: x86_64
@@ -76,6 +80,8 @@ jobs:
           script: |
             # Skip Android's first-use fullscreen tutorial on this disposable emulator.
             adb shell settings put secure immersive_mode_confirmations confirmed
+            adb shell wm size
+            adb shell wm density
             ./gradlew :app:connectedDebugAndroidTest
       - uses: actions/upload-artifact@v4
         if: always()
