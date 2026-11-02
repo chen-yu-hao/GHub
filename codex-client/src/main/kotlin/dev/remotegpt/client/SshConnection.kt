@@ -30,6 +30,8 @@ fun shellQuote(value: String): String {
 
 class SshConnection private constructor(val profile: HostProfile, private val chain: List<SSHClient>) : Closeable {
     val client: SSHClient get() = chain.last()
+    /** Keep SSHJ implementation types out of callers that only need transport availability. */
+    val isConnected: Boolean get() = client.isConnected && client.isAuthenticated
 
     companion object {
         suspend fun connect(profile: HostProfile, prompts: SshPrompts): SshConnection {

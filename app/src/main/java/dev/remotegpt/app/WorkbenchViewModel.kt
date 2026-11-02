@@ -447,9 +447,7 @@ class WorkbenchViewModel(application: Application) : AndroidViewModel(applicatio
     private fun hasNetwork() = network.activeNetwork != null
     private fun recoveryStatus() = if (hasNetwork()) ConnectionStatus.RECONNECTING else ConnectionStatus.WAITING_NETWORK
 
-    private fun sshReady(host: String): Boolean = fileRuntimes[host]?.ssh?.client?.let {
-        it.isConnected && it.isAuthenticated
-    } == true
+    private fun sshReady(host: String): Boolean = fileRuntimes[host]?.ssh?.isConnected == true
 
     /** Keep SSH availability honest even when there is no Codex runtime to monitor it. */
     private fun watchSsh(host: String, files: FileRuntime) {
