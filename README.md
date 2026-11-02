@@ -11,9 +11,13 @@
 
 [看板使用与实现说明](docs/taskboard.md) · [APK 构建与下载](https://github.com/chen-yu-hao/GHub/actions/workflows/taskboard-apk.yml) · [离线 UI 对照](app/design/taskboard/preview.html) · [测试记录](docs/taskboard-verification.md) · [原项目](https://github.com/iawnix/GHub)
 
-本次改造维护在 [chen-yu-hao/GHub 的 main 分支](https://github.com/chen-yu-hao/GHub/tree/main)，基于上游提交 `2686cf23d8c6d6d47086e38477cb27411cc768f4`，版本为 `0.2.0-taskboard`。[源码 `96c07a2`](https://github.com/chen-yu-hao/GHub/commit/96c07a207a505e20c6d7cf50cc2f33d4a5218cdc) 的 [APK 构建 41418505659](https://github.com/chen-yu-hao/GHub/actions/runs/41418505659) 和 [完整 CI 41418462024](https://github.com/chen-yu-hao/GHub/actions/runs/41418462024) 均已成功：前端、JVM、Lint、APK 编译、API 29 / 35 / 36 设备测试及 Release 设备流程全部完成。设备测试每档 34 项通过、4 项 fixture 检查跳过，Release 综合用例 1 项通过、0 跳过；跳过项目与完整范围见[验证记录](docs/taskboard-verification.md)。
+本次改造维护在 [chen-yu-hao/GHub 的 main 分支](https://github.com/chen-yu-hao/GHub/tree/main)，基于上游提交 `2686cf23d8c6d6d47086e38477cb27411cc768f4`。当前版本 **`0.2.2-taskboard`（versionCode 44）**、[源码 `5bd7f89`](https://github.com/chen-yu-hao/GHub/commit/5bd7f89f0040932d5aed039e563b3faadd303dcd) 修复横竖屏显示不完整：原生 WebView 显式填满窗口，看板取消全局宽高硬限制，短屏使用整页滚动，正常高度保留任务区内部滚动；旧 Android 在旋转后丢失全屏标志时恢复看板的系统栏状态。
 
-可下载安装独立包名 `dev.remotegpt.taskboard` 的 **Debug 预览 APK**，与原版共存。下载包采用调试签名；已核对其中 6 项看板资源与源码字节一致。文件校验值见[验证记录](docs/taskboard-verification.md)。Ocean 5C 真机像素、中文字体和硬件全刷仍需实机确认；上游 Releases 的 APK 不包含本次改造。
+**同一提交的 [APK 构建 41437823444](https://github.com/chen-yu-hao/GHub/actions/runs/41437823444) 与 [完整 CI 41437406135](https://github.com/chen-yu-hao/GHub/actions/runs/41437406135) 均成功。** API 29 / 35 / 36 每档实际 35 项通过、4 项 fixture 跳过；新增布局用例执行竖屏 → 横屏 → 返回竖屏、真实滑动和分页。独立核对三档共 36 份几何 JSON 与 36 张原始 PNG，所有捕获的请求尺寸、全屏状态和滚动结果通过；API 29 返回竖屏实际保持 632 × 840。前端 32 项、JVM 76 项及 Release 的加密密钥、SFTP、PTY 综合用例通过，另有 7 项 JVM fixture 跳过，详见[验证记录](docs/taskboard-verification.md)。
+
+安装包已下载核对，采用独立包名 `dev.remotegpt.taskboard` 和 Debug 调试签名，可与原版共存。Ocean 5C 真机像素、中文字体和硬件全刷仍需实机确认；上游 Releases 的 APK 不包含本次改造。
+
+**从旧预览版升级时，请先保存服务器配置、认证材料和需要的本地数据。** 已核验的 0.2.0、0.2.1 与本次 0.2.2 Debug 证书不同，不能常规覆盖安装；卸载旧预览版后重装会清除其本地配置和数据。证书比对范围及安装说明见[验证记录](docs/taskboard-verification.md#apk-下载签名与升级)。
 
 ## 功能
 
@@ -37,7 +41,7 @@
 
 需要 Android 10 或更新版本和可通过 OpenSSH 访问的 Linux 主机。远程任务功能按上游兼容策略要求 Codex CLI **0.164.0 或更新的 0.x 版本**；SFTP 文件和 PTY 终端不要求任务服务成功启动。
 
-1. 打开 [成功的 APK 构建运行 41418505659](https://github.com/chen-yu-hao/GHub/actions/runs/41418505659)，在 **Artifacts** 下载 `ghub-taskboard-debug-apk`，解压并安装 `app-debug.apk`。这是源码 `96c07a2`、独立包名 `dev.remotegpt.taskboard` 的 Debug 预览版，可与原版共存。
+1. 打开 [成功的 0.2.2 APK 构建运行 41437823444](https://github.com/chen-yu-hao/GHub/actions/runs/41437823444)，从 **Artifacts** 下载 `ghub-taskboard-debug-apk`，解压并安装 `app-debug.apk`。已核验的下载文件保存为 `GHub-taskboard-0.2.2-5bd7f89-debug.apk`，共 78,982,267 字节；SHA-256 见[验证记录](docs/taskboard-verification.md#apk-下载签名与升级)。如已装旧预览版，先按上方说明保存数据再重装。
 2. 要使用远程任务，在开发机完成 Codex 登录或模型提供方配置，启动 App Server：
 
    ```sh
@@ -66,17 +70,18 @@ flowchart LR
 
 ## 从源码构建
 
-准备 JDK 21、Android SDK Platform 36、Build Tools 35.0.0 和 Node.js 22。克隆本次改造的仓库，在 Android Studio 打开项目，或运行：
+准备 JDK 21、Android SDK Platform 36、Build Tools 35.0.0 和 Node.js 22。复现已交付 APK 的源码版本可运行以下命令；设备验收使用的测试提交与模拟器配置见[验证记录](docs/taskboard-verification.md#复现构建与设备测试)：
 
 ```sh
 git clone --branch main https://github.com/chen-yu-hao/GHub.git
 cd GHub
+git switch --detach 5bd7f89f0040932d5aed039e563b3faadd303dcd
 node scripts/taskboard/board.test.cjs
 ./gradlew -PpreviewApplicationId=dev.remotegpt.taskboard \
   :codex-client:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
-APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。仓库已提供并成功运行 [Build taskboard APK](https://github.com/chen-yu-hao/GHub/actions/workflows/taskboard-apk.yml) 工作流；有权限时可在 Actions 中选择 **Run workflow** 构建选定分支。下载前核对运行的提交与结论，不要把构建成功等同于设备验收通过。更多环境配置见[开发指南](docs/development.md)。
+APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。仓库提供 [Build taskboard APK](https://github.com/chen-yu-hao/GHub/actions/workflows/taskboard-apk.yml) 工作流；有权限时可在 Actions 中选择 **Run workflow** 构建选定分支。下载前核对运行的提交与结论，构建、设备交互和布局检查分别记录。更多环境配置见[开发指南](docs/development.md)。
 
 ## 参与贡献
 
