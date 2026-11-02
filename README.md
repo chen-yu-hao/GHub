@@ -9,9 +9,11 @@
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-10%2B-green)](docs/getting-started.md)
 
-[看板使用与实现说明](docs/taskboard.md) · [离线 UI 对照](app/design/taskboard/preview.html) · [测试记录](docs/taskboard-verification.md) · [原项目](https://github.com/iawnix/GHub)
+[看板使用与实现说明](docs/taskboard.md) · [APK 构建与下载](https://github.com/chen-yu-hao/GHub/actions/workflows/taskboard-apk.yml) · [离线 UI 对照](app/design/taskboard/preview.html) · [测试记录](docs/taskboard-verification.md) · [原项目](https://github.com/iawnix/GHub)
 
-此交付基于上游提交 `2686cf23d8c6d6d47086e38477cb27411cc768f4`，版本为 `0.2.0-taskboard`。当前交付为源码；尚未编译或实机验证 APK。上游 Releases 中的 APK 不包含本次改造。
+本次改造维护在 [chen-yu-hao/GHub 的 main 分支](https://github.com/chen-yu-hao/GHub/tree/main)，基于上游提交 `2686cf23d8c6d6d47086e38477cb27411cc768f4`，版本为 `0.2.0-taskboard`。[源码 `96c07a2`](https://github.com/chen-yu-hao/GHub/commit/96c07a207a505e20c6d7cf50cc2f33d4a5218cdc) 的 [APK 构建 41418505659](https://github.com/chen-yu-hao/GHub/actions/runs/41418505659) 和 [完整 CI 41418462024](https://github.com/chen-yu-hao/GHub/actions/runs/41418462024) 均已成功：前端、JVM、Lint、APK 编译、API 29 / 35 / 36 设备测试及 Release 设备流程全部完成。设备测试每档 34 项通过、4 项 fixture 检查跳过，Release 综合用例 1 项通过、0 跳过；跳过项目与完整范围见[验证记录](docs/taskboard-verification.md)。
+
+可下载安装独立包名 `dev.remotegpt.taskboard` 的 **Debug 预览 APK**，与原版共存。下载包采用调试签名；已核对其中 6 项看板资源与源码字节一致。文件校验值见[验证记录](docs/taskboard-verification.md)。Ocean 5C 真机像素、中文字体和硬件全刷仍需实机确认；上游 Releases 的 APK 不包含本次改造。
 
 ## 功能
 
@@ -29,13 +31,13 @@
 
 ## 界面预览
 
-用浏览器打开 [app/design/taskboard/preview.html](app/design/taskboard/preview.html)。预览引用生产 CSS、SVG 与 JavaScript，显式使用示例数据，不连接服务器、不执行命令。原 HTML 提取内容和尺寸对照见[设计说明](app/design/taskboard/README.md)。本次没有生成浏览器截图或真机截图。
+用浏览器打开 [app/design/taskboard/preview.html](app/design/taskboard/preview.html)。预览引用生产 CSS、SVG 与 JavaScript，显式使用示例数据，不连接服务器、不执行命令。原 HTML 提取内容和尺寸对照见[设计说明](app/design/taskboard/README.md)。尚未完成 Ocean 5C 真机与参考 HTML 的像素、字形和硬件全刷验证。
 
 ## 快速开始
 
 需要 Android 10 或更新版本和可通过 OpenSSH 访问的 Linux 主机。远程任务功能按上游兼容策略要求 Codex CLI **0.164.0 或更新的 0.x 版本**；SFTP 文件和 PTY 终端不要求任务服务成功启动。
 
-1. 按下文编译，或在自己的仓库中运行附带的 `Build taskboard APK` 手动工作流，安装生成的 Debug APK。
+1. 打开 [成功的 APK 构建运行 41418505659](https://github.com/chen-yu-hao/GHub/actions/runs/41418505659)，在 **Artifacts** 下载 `ghub-taskboard-debug-apk`，解压并安装 `app-debug.apk`。这是源码 `96c07a2`、独立包名 `dev.remotegpt.taskboard` 的 Debug 预览版，可与原版共存。
 2. 要使用远程任务，在开发机完成 Codex 登录或模型提供方配置，启动 App Server：
 
    ```sh
@@ -64,15 +66,17 @@ flowchart LR
 
 ## 从源码构建
 
-准备 JDK 21、Android SDK Platform 36、Build Tools 35.0.0 和 Node.js 22。解压交付源码后，在 Android Studio 打开项目，或在 `GHub` 目录运行：
+准备 JDK 21、Android SDK Platform 36、Build Tools 35.0.0 和 Node.js 22。克隆本次改造的仓库，在 Android Studio 打开项目，或运行：
 
 ```sh
+git clone --branch main https://github.com/chen-yu-hao/GHub.git
+cd GHub
 node scripts/taskboard/board.test.cjs
 ./gradlew -PpreviewApplicationId=dev.remotegpt.taskboard \
   :codex-client:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
-APK 位于 `app/build/outputs/apk/debug/app-debug.apk`，独立包名 `dev.remotegpt.taskboard` 可与原版共存。也可将源码放入自己的 GitHub 仓库，通过 [Build taskboard APK](.github/workflows/taskboard-apk.yml) 手动工作流构建。该工作流随源码提供，本次未在远端运行。更多环境配置见[开发指南](docs/development.md)。
+APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。仓库已提供并成功运行 [Build taskboard APK](https://github.com/chen-yu-hao/GHub/actions/workflows/taskboard-apk.yml) 工作流；有权限时可在 Actions 中选择 **Run workflow** 构建选定分支。下载前核对运行的提交与结论，不要把构建成功等同于设备验收通过。更多环境配置见[开发指南](docs/development.md)。
 
 ## 参与贡献
 

@@ -3,10 +3,11 @@
 ## 使用 GHub
 
 - [任务看板](taskboard.md)：本次 HTML 看板改造、OpenSSH、使用方法、构建与边界。
-- [任务看板验证记录](taskboard-verification.md)：已执行检查与尚未执行的 Android / 真机验证。
+- [任务看板验证记录](taskboard-verification.md)：已通过的 APK、JVM、Lint、前端、API 29 / 35 / 36 与 Release 设备检查，跳过范围及已修复问题历史。
+- [看板 APK 构建与下载](https://github.com/chen-yu-hao/GHub/actions/runs/41418505659)：源码 `96c07a2` 的成功 Debug 构建；同提交的[完整 CI](https://github.com/chen-yu-hao/GHub/actions/runs/41418462024) 也已通过，文件校验值见[验证记录](taskboard-verification.md)。
 - [快速开始与常见问题](getting-started.md)：安装、服务器配置、项目与会话、文件和终端。
 - [连接与同步](connection-recovery.md)：重连、后台保持、草稿和缓存的工作方式。
-- [版本更新](https://github.com/iawnix/GHub/releases)：APK 下载、更新说明和源码附件。
+- [上游版本历史](https://github.com/iawnix/GHub/releases)：原项目的更新说明与发行包，不包含本 fork 的任务看板改造。
 
 ## 参与开发
 

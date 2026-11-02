@@ -2,7 +2,9 @@
 
 本版将 GHub 的默认首页改为所提供的「墨水屏任务看板 · Ocean 5C 竖屏」HTML 界面，连接远端 OpenSSH 和 Codex App Server。Android 最低版本保持为 10（API 29）。源码基于上游提交 [`2686cf23d8c6d6d47086e38477cb27411cc768f4`](https://github.com/iawnix/GHub/commit/2686cf23d8c6d6d47086e38477cb27411cc768f4)，版本号为 `0.2.0-taskboard`。
 
-本次交付包含完整源码、可应用于该上游提交的补丁、离线示例预览和构建工作流。当前环境未完成 Android 编译，交付包中没有 APK；真实执行结果见[验证记录](taskboard-verification.md)。
+代码维护在 [chen-yu-hao/GHub 的 main 分支](https://github.com/chen-yu-hao/GHub/tree/main)。[源码 `96c07a2`](https://github.com/chen-yu-hao/GHub/commit/96c07a207a505e20c6d7cf50cc2f33d4a5218cdc) 的 [APK 构建 41418505659](https://github.com/chen-yu-hao/GHub/actions/runs/41418505659) 与 [完整 CI 41418462024](https://github.com/chen-yu-hao/GHub/actions/runs/41418462024) 均已成功，涵盖前端、JVM、Lint、APK 编译、API 29 / 35 / 36 和 Release 设备流程。设备测试每档 34 项通过、4 项 fixture 检查跳过；Release 综合用例 1 项通过、0 跳过。完整计数与范围见[验证记录](taskboard-verification.md)。
+
+已下载独立包名 `dev.remotegpt.taskboard` 的 Debug 预览 APK，并核对其 6 项看板资源与该源码字节一致。下载包采用调试签名，文件大小和 SHA-256 见[验证记录](taskboard-verification.md)；Ocean 5C 真机像素、中文字体与硬件全刷效果仍需实机确认。
 
 ## 界面与 HTML 对应
 
@@ -33,7 +35,7 @@
 4. 发起连接，核对显示的 SHA-256 主机指纹。
 5. 返回看板，选择服务器和项目。已连接任务服务的任务会进入四种状态页；仅 SSH 已连接时仍可打开终端，以及通过「项目与会话」进入文件管理。
 
-认证沿用原项目的 SSHJ 实现，可连接 OpenSSH 服务端，保留 OpenSSH Ed25519 私钥（包括加密私钥）、PEM RSA、密码、键盘交互、多级跳板和主机密钥确认流程。凭据在 Android 原生层通过 Keystore 加密保存，不传给看板 JavaScript。当前交付没有用真实服务器重新运行这些集成测试。
+认证沿用原项目的 SSHJ 实现，可连接 OpenSSH 服务端，保留 OpenSSH Ed25519 私钥（包括加密私钥）、PEM RSA、密码、键盘交互、多级跳板和主机密钥确认流程。凭据在 Android 原生层通过 Keystore 加密保存，不传给看板 JavaScript。Release 设备综合用例已在隔离测试服务中验证加密 Ed25519 与 RSA 密钥、SSH 命令、SFTP 上传 / 读取 / 保存和 PTY 操作；这项验证不等同于已联调用户的真实服务器。普通 APK 构建中的 7 项 client fixture 测试及每档设备的 4 项 fixture 检查仍如实列为跳过，见[验证记录](taskboard-verification.md)。
 
 ### OpenSSH 与任务服务
 
@@ -88,28 +90,22 @@ codex app-server daemon version
 
 使用 JDK 21、Android SDK Platform 36、Build Tools 35.0.0、Node.js 22。Gradle Wrapper 随完整源码提供，首次构建需要能访问 Gradle、Google 和 Maven 依赖源。
 
-在交付源码的 `GHub` 目录执行：
+从本次改造的 main 分支克隆并执行：
 
 ```sh
+git clone --branch main https://github.com/chen-yu-hao/GHub.git
+cd GHub
 node scripts/taskboard/board.test.cjs
 ./gradlew -PpreviewApplicationId=dev.remotegpt.taskboard \
   :codex-client:test :app:testDebugUnitTest :app:lintDebug \
   :app:assembleDebug :app:assembleDebugAndroidTest
 ```
 
-输出为 `app/build/outputs/apk/debug/app-debug.apk`，包名 `dev.remotegpt.taskboard`，可与原版共存，应用名称显示“GHub 看板 Preview”。不传 `previewApplicationId` 时沿用原包名，覆盖安装还受签名是否一致影响。
+输出为 `app/build/outputs/apk/debug/app-debug.apk`，包名 `dev.remotegpt.taskboard`，可与原版共存，应用名称显示“GHub 看板 Preview”。该包采用 Debug 调试签名，非正式发行签名。不传 `previewApplicationId` 时沿用原包名，覆盖安装还受签名是否一致影响。
 
-也可以将交付源码提交至自己的 GitHub 仓库，进入 Actions，选择 **Build taskboard APK → Run workflow**。工作流先执行前端检查、JVM 测试、Lint 和编译，成功后生成 `ghub-taskboard-debug-apk` 构建附件。工作流不会自动发布 Release；本次未在远端执行。
+可以直接从 [成功运行 41418505659](https://github.com/chen-yu-hao/GHub/actions/runs/41418505659) 的 **Artifacts → ghub-taskboard-debug-apk** 下载源码 `96c07a2` 的构建附件。已下载的校验包保存为 `GHub-taskboard-0.2.0-96c07a2-debug.apk`，共 78,981,807 字节；完整 SHA-256 见[验证记录](taskboard-verification.md)。工作流同时生成 `taskboard-verification-reports`，供核对 JVM 与 Lint 报告。工作流不会自动发布正式 Release。
 
-若使用补丁而不是完整源码，应从确切的上游提交开始：
-
-```sh
-git clone https://github.com/iawnix/GHub.git
-cd GHub
-git switch -c taskboard-ocean5c 2686cf23d8c6d6d47086e38477cb27411cc768f4
-git apply --check ../GHub-taskboard.patch
-git apply --index ../GHub-taskboard.patch
-```
+需要重建时，有权限的用户可进入本 fork 的 [Actions → Build taskboard APK](https://github.com/chen-yu-hao/GHub/actions/workflows/taskboard-apk.yml)，选择 **Run workflow** 和目标分支。构建结果与设备结果是不同门禁，下载前应核对提交、运行结论及本文的已知问题。
 
 ## 实现入口
 
