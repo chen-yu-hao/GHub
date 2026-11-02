@@ -120,7 +120,7 @@ test('structured plans preserve actual active/completed steps and never invent a
 
 /* Small DOM harness: verify actual production event/render paths and inert remote text. */
 class Node {
-  constructor(tag, doc) { this.tagName = tag.toUpperCase(); this.ownerDocument = doc; this.children = []; this.attributes = {}; this.listeners = {}; this._text = ''; this.hidden = false; this.disabled = false; this.value = ''; this.style = {}; }
+  constructor(tag, doc) { this.tagName = tag.toUpperCase(); this.ownerDocument = doc; this.children = []; this.attributes = {}; this.listeners = {}; this._text = ''; this.hidden = false; this.disabled = false; this.value = ''; this.style = {}; this.scrollTop = 0; this.documentTop = 0; }
   get firstChild() { return this.children[0] || null; }
   get scrollHeight() { return this.className === 'flex-gap-probe' ? (this.ownerDocument.flexGapSupported ? 3 : 2) : 0; }
   get textContent() { return this._text + this.children.map(child => child.textContent).join(''); }
@@ -132,13 +132,14 @@ class Node {
   addEventListener(name, fn) { (this.listeners[name] ||= []).push(fn); }
   dispatch(name, extra = {}) { const event = { target: this, preventDefault() {}, ...extra }; (this.listeners[name] || []).forEach(fn => fn(event)); }
   click() { if (!this.disabled) this.dispatch('click'); }
-  focus() { this.ownerDocument.activeElement = this; }
+  focus(options) { this.ownerDocument.activeElement = this; this.ownerDocument.focusCalls.push({ node: this, options }); }
+  getBoundingClientRect() { return { top: this.documentTop - this.ownerDocument.defaultView.pageYOffset }; }
   walk() { return [this, ...this.children.flatMap(child => child.walk())]; }
   querySelectorAll() { return this.walk().filter(node => !node.disabled && (['BUTTON', 'SELECT', 'INPUT'].includes(node.tagName) || node.attributes.tabindex === '0')); }
 }
 
-function browserHarness({ flexGapSupported = true } = {}) {
-  const document = { readyState: 'complete', listeners: {}, created: [], activeElement: null, flexGapSupported };
+function browserHarness({ flexGapSupported = true, taskOverflowY = 'auto' } = {}) {
+  const document = { readyState: 'complete', listeners: {}, created: [], activeElement: null, focusCalls: [], flexGapSupported };
   document.createElement = tag => { const node = new Node(tag, document); document.created.push(node); return node; };
   document.createElementNS = (_, tag) => document.createElement(tag);
   document.documentElement = document.createElement('html');
@@ -151,15 +152,27 @@ function browserHarness({ flexGapSupported = true } = {}) {
   const actions = [];
   const storage = {};
   const timers = [];
+  const scrolls = [];
   const context = { document, console, Date, JSON, Number, Math, String, Array, Object,
+    pageYOffset: 0,
+    getComputedStyle: node => ({ overflowY: node.computedOverflowY || 'auto' }),
+    scrollTo: (x, y) => {
+      context.pageYOffset = y;
+      scrolls.push({ x, y, pageLabel: document.getElementById('page-label').textContent,
+        tasksText: document.getElementById('tasks').textContent });
+    },
     localStorage: { getItem: key => storage[key] || null, setItem: (key, value) => { storage[key] = value; } },
     GHubBoard: { postMessage: text => actions.push(JSON.parse(text)) },
     setTimeout: fn => { timers.push(fn); return timers.length; }, clearTimeout() {}, requestAnimationFrame: fn => fn() };
   context.window = context;
+  document.defaultView = context;
+  document.getElementById('tasks').computedOverflowY = taskOverflowY;
+  // Synthetic coordinates record scroll commands; this harness does not lay out CSS.
+  document.getElementById('tasks').documentTop = 231;
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(path.join(ASSET_ROOT, 'icons.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(path.join(ASSET_ROOT, 'board.js'), 'utf8'), context);
-  return { context, document, actions, storage, timers,
+  return { context, document, actions, storage, timers, scrolls,
     find: text => document.documentElement.walk().find(node => node.tagName === 'BUTTON' && node.textContent === text),
     id: id => document.getElementById(id),
     tab: state => document.documentElement.walk().find(node => node.attributes['data-state'] === state) };
@@ -188,6 +201,104 @@ test('real tab controls and pagination render 7 completed rows then 2, without f
   assert.equal(harness.id('page-label').textContent, '第 2 / 2 页');
   assert.equal(harness.id('next').disabled, true);
   assert.match(harness.id('page-note').textContent, /9 项/);
+});
+
+test('explicit tab and page changes reset the current scroller only after the new page is rendered', () => {
+  for (const taskOverflowY of ['auto', 'visible']) {
+    const harness = browserHarness({ taskOverflowY });
+    harness.context.TaskBoard.render({ hosts: [host()], tasks: Array.from({ length: 9 }, (_, index) => task({ key: 'done' + index, state: 'done', title: '任务 ' + index })) });
+    function navigate(action, pageLabel, firstTitle) {
+      harness.id('tasks').scrollTop = 125;
+      harness.context.pageYOffset = 600;
+      harness.scrolls.length = 0;
+      action();
+      assert.equal(harness.id('tasks').scrollTop, 0);
+      assert.equal(harness.id('page-label').textContent, pageLabel);
+      assert.equal(harness.scrolls.length, taskOverflowY === 'visible' ? 1 : 0);
+      if (taskOverflowY === 'visible') {
+        const scroll = harness.scrolls[0];
+        assert.equal(scroll.x, 0);
+        assert.equal(scroll.y, 231, 'scroll target is the task origin, not the old footer or page zero');
+        assert.equal(scroll.pageLabel, pageLabel, 'render completes before document scrolling');
+        assert.ok(scroll.tasksText.includes(firstTitle));
+      } else assert.equal(harness.context.pageYOffset, 600, 'internal mode does not move the document');
+    }
+    navigate(() => harness.tab('done').click(), '第 1 / 2 页', '任务 0');
+    navigate(() => harness.id('next').click(), '第 2 / 2 页', '任务 7');
+    navigate(() => harness.id('previous').click(), '第 1 / 2 页', '任务 0');
+    // A later resize/rotation is reflected by computed style, without a cached mode.
+    harness.id('tasks').computedOverflowY = taskOverflowY === 'visible' ? 'auto' : 'visible';
+    harness.scrolls.length = 0;
+    harness.id('next').click();
+    assert.equal(harness.scrolls.length, taskOverflowY === 'visible' ? 0 : 1);
+  }
+});
+
+test('applying and clearing active filters use the same post-render scroll reset in both modes', () => {
+  for (const taskOverflowY of ['auto', 'visible']) {
+    const harness = browserHarness({ taskOverflowY });
+    harness.context.TaskBoard.render({ hosts: [host(), host({ id: 'h2', name: 'other' })], tasks: [task()] });
+    harness.id('filter').click();
+    const hostSelect = harness.id('modal').walk().find(node => node.tagName === 'SELECT');
+    hostSelect.value = 'h2';
+    hostSelect.dispatch('change');
+    function checkReset(action, expectedText) {
+      harness.id('tasks').scrollTop = 95;
+      harness.context.pageYOffset = 500;
+      harness.scrolls.length = 0;
+      action();
+      assert.equal(harness.id('tasks').scrollTop, 0);
+      assert.ok(harness.id('tasks').textContent.includes(expectedText));
+      assert.equal(harness.scrolls.length, taskOverflowY === 'visible' ? 1 : 0);
+      if (taskOverflowY === 'visible') {
+        assert.equal(harness.scrolls[0].y, 231);
+        assert.ok(harness.scrolls[0].tasksText.includes(expectedText));
+      } else assert.equal(harness.context.pageYOffset, 500);
+    }
+    checkReset(() => harness.find('应用筛选').click(), '暂无等待确认的任务');
+    checkReset(() => harness.id('tasks').walk().find(node => node.tagName === 'BUTTON' && node.textContent === '清除筛选').click(), '测试任务');
+  }
+});
+
+test('background snapshots preserve reading position without invoking a document scroll reset', () => {
+  for (const taskOverflowY of ['auto', 'visible']) {
+    const harness = browserHarness({ taskOverflowY });
+    harness.context.TaskBoard.render({ hosts: [host()], tasks: [task()] });
+    const taskScroll = taskOverflowY === 'visible' ? 0 : 147;
+    harness.id('tasks').scrollTop = taskScroll;
+    harness.context.pageYOffset = 487;
+    harness.scrolls.length = 0;
+    harness.context.TaskBoard.render({ hosts: [host()], tasks: [task({ title: '更新后的任务' })] });
+    assert.match(harness.id('tasks').textContent, /更新后的任务/);
+    assert.equal(harness.id('tasks').scrollTop, taskScroll);
+    assert.equal(harness.context.pageYOffset, 487);
+    assert.equal(harness.scrolls.length, 0);
+  }
+});
+
+test('closing a modal restores live or fallback focus with preventScroll after snapshot replacement', () => {
+  for (const taskOverflowY of ['auto', 'visible']) {
+    for (const replaceTrigger of [false, true]) {
+      const harness = browserHarness({ taskOverflowY });
+      harness.context.TaskBoard.render({ hosts: [host()], tasks: [task()] });
+      const trigger = harness.find('允许一次');
+      trigger.focus();
+      trigger.click();
+      harness.context.pageYOffset = 420;
+      harness.scrolls.length = 0;
+      if (replaceTrigger) {
+        harness.context.TaskBoard.render({ hosts: [host()], tasks: [task({ title: '更新后的任务' })] });
+        assert.equal(harness.document.contains(trigger), false);
+      }
+      harness.context.TaskBoard.closeDialog();
+      const focus = harness.document.focusCalls.at(-1);
+      assert.equal(focus.node, replaceTrigger ? harness.id('filter') : trigger);
+      assert.equal(focus.options.preventScroll, true, 'focus restoration must explicitly suppress browser auto-scrolling');
+      assert.equal(harness.context.pageYOffset, 420);
+      assert.equal(harness.scrolls.length, 0);
+      assert.equal(harness.id('modal-backdrop').hidden, true);
+    }
+  }
 });
 
 test('approval button opens a confirmation and submits precisely once, with native Back integration', () => {
@@ -292,7 +403,8 @@ test('portable full redraw terminates after a black and white repaint', () => {
 
 // Compare against inline CSS extracted unchanged from the user's supplied HTML.
 const referenceMarkup = fs.readFileSync(path.join(__dirname, '../../app/design/taskboard/supplied-board-markup.html'), 'utf8');
-const baseCss = fs.readFileSync(path.join(ASSET_ROOT, 'board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').split('@media')[0];
+const productionCss = fs.readFileSync(path.join(ASSET_ROOT, 'board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+const baseCss = productionCss.split('@media')[0];
 function declarations(text) {
   return Object.fromEntries(text.split(';').map(item => item.split(/:(.*)/s).slice(0, 2).map(value => value.trim())).filter(item => item.length === 2));
 }
@@ -302,12 +414,27 @@ function sourceStyle(tag, needle) {
   assert.ok(found, 'source style: ' + tag + ' ' + needle);
   return declarations(found[1]);
 }
-function cssStyle(...selectors) {
+function cssStyleFrom(css, ...selectors) {
   const result = {};
   for (const selector of selectors) {
-    for (const rule of baseCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    for (const rule of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
       if (rule[1].trim().split(',').map(item => item.trim()).includes(selector)) Object.assign(result, declarations(rule[2]));
     }
+  }
+  return result;
+}
+function cssStyle(...selectors) { return cssStyleFrom(baseCss, ...selectors); }
+// Evaluate this stylesheet's width/height media conditions, not browser geometry.
+function cssStyleForViewport(selector, width, height) {
+  const result = cssStyle(selector);
+  for (const block of productionCss.matchAll(/@media\s+([^{}]+)\{((?:[^{}]|\{[^{}]*\})*)\}/g)) {
+    const matches = block[1].split(',').some(group => group.trim().split(/\s+and\s+/).every(condition => {
+      const bounds = condition.match(/^\((min|max)-(width|height):\s*(\d+)px\)$/);
+      assert.ok(bounds, 'supported media condition: ' + condition);
+      const dimension = bounds[2] === 'width' ? width : height;
+      return bounds[1] === 'max' ? dimension <= Number(bounds[3]) : dimension >= Number(bounds[3]);
+    }));
+    if (matches) Object.assign(result, cssStyleFrom(block[2], selector));
   }
   return result;
 }
@@ -319,8 +446,10 @@ function assertProperties(source, actual, properties) {
 
 test('source-derived geometry: 632×840 page, header/filter/tabs/content/footer positions match exactly', () => {
   const source = sourceStyle('div', 'width: 632px; height: 840px');
-  const board = cssStyle('.board');
-  assert.equal(board['max-width'], source.width);
+  const board = cssStyleForViewport('.board', parseInt(source.width), parseInt(source.height));
+  assert.equal(board.width, '100%');
+  assert.equal(board['max-width'], undefined, 'reference width is a comparison viewport, not a global cap');
+  assert.equal(board['min-height'], '0');
   assertProperties(source, board, ['padding', 'display', 'flex-direction', 'gap', 'overflow', 'background']);
   const paddingY = parseInt(board.padding);
   const gap = parseInt(board.gap);
@@ -331,6 +460,33 @@ test('source-derived geometry: 632×840 page, header/filter/tabs/content/footer 
   assert.deepEqual({ header: paddingY, filter: paddingY + headerHeight + gap, tabs: paddingY + headerHeight + filterHeight + 2 * gap,
     content: paddingY + headerHeight + filterHeight + tabHeight + 3 * gap, footer: parseInt(source.height) - paddingY - footerHeight },
   { header: 16, filter: 91, tabs: 147, content: 231, footer: 761 });
+});
+
+test('viewport rules fill wide screens and let short windows scroll whole cards without changing the reference', () => {
+  const cases = [
+    [632, 840, false], [1264, 1680, false], [1680, 1264, false], [1024, 768, false], [840, 632, false],
+    [320, 568, true], [360, 640, true], [360, 800, false], [412, 915, false],
+    [640, 360, true], [800, 360, true], [844, 390, true],
+    [460, 700, true], [460, 701, false], [461, 700, false], [461, 600, true], [461, 601, false]
+  ];
+  for (const [width, height, short] of cases) {
+    const label = width + '×' + height;
+    const board = cssStyleForViewport('.board', width, height);
+    const tasks = cssStyleForViewport('.tasks', width, height);
+    assert.equal(board.width, '100%', label);
+    assert.equal(board['max-width'], undefined, label + ' must not be capped to the design canvas');
+    assert.equal(board.height, short ? 'auto' : '100dvh', label);
+    assert.equal(board['min-height'], short ? '100dvh' : '0', label);
+    assert.equal(board.overflow, short ? 'visible' : 'hidden', label);
+    assert.equal(tasks.flex, short ? 'none' : '1', label);
+    if (short) assert.equal(tasks.overflow, 'visible', label + ' removes the nested task scrollport');
+    else {
+      assert.equal(tasks.overflow, undefined, label);
+      assert.equal(tasks['overflow-y'], 'auto', label + ' retains the internal task scroller');
+    }
+  }
+  assert.match(baseCss, /height:\s*100%;\s*height:\s*100dvh;/, 'older WebViews retain a percentage-height fallback');
+  assert.match(productionCss, /height:\s*auto;\s*min-height:\s*100%;\s*min-height:\s*100dvh;/, 'short-mode minimum height also has a legacy fallback');
 });
 
 test('source-derived styles: header, filter, statistic tiles and footer retain original visual measurements', () => {

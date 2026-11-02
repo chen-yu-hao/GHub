@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -133,6 +134,11 @@ internal fun TaskBoardScreen(
             modifier = Modifier.fillMaxSize(),
             factory = { hostContext ->
                 WebView(hostContext).apply {
+                    // Chromium treats WRAP_CONTENT as zero layout height even when Compose fills the view.
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                    )
                     setBackgroundColor(Color.WHITE)
                     isVerticalScrollBarEnabled = false
                     isHorizontalScrollBarEnabled = false

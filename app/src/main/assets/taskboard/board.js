@@ -453,7 +453,7 @@
     var actions = element('div', 'empty-actions');
     if (!snapshot.hosts.length || !online) append(actions, button(snapshot.hosts.length ? '管理 SSH 服务器' : '添加 SSH 服务器', function () { post({ type: 'hosts' }); }, 'button primary'));
     if (online || sshOnly) append(actions, button(sshOnly && !online ? '打开终端' : '新建任务', function () { showFilters(); }));
-    if (filtered) append(actions, button('清除筛选', function () { preferences.hostId = ''; preferences.path = ''; page = 0; persist(); renderBoard(); }));
+    if (filtered) append(actions, button('清除筛选', function () { preferences.hostId = ''; preferences.path = ''; page = 0; persist(); renderBoard(); scrollToTaskStart(); }));
     if (actions.children.length) append(box, actions);
     return box;
   }
@@ -508,14 +508,24 @@
     refreshApprovalStatus();
   }
 
+  function scrollToTaskStart() {
+    var main = id('tasks');
+    main.scrollTop = 0;
+    // Only explicit navigation resets reading position; native snapshots do not.
+    // Read the current CSS mode so rotation does not leave a stale scroll target.
+    if (global.getComputedStyle(main).overflowY === 'visible') {
+      global.scrollTo(0, Math.max(0, global.pageYOffset + main.getBoundingClientRect().top));
+    }
+  }
+
   function closeModal() {
     id('modal-backdrop').hidden = true;
     id('board').removeAttribute('aria-hidden');
     modalKind = '';
     pendingApproval = null;
     post({ type: 'dialogClosed' });
-    if (returnFocus && doc.contains(returnFocus)) returnFocus.focus();
-    else id('filter').focus();
+    var target = returnFocus && doc.contains(returnFocus) ? returnFocus : id('filter');
+    target.focus({ preventScroll: true });
   }
 
   function beginModal(title, kind) {
@@ -575,8 +585,8 @@
       page = 0;
       persist();
       closeModal();
-      id('tasks').scrollTop = 0;
       renderBoard();
+      scrollToTaskStart();
     }, 'button primary');
     append(modal, append(element('div', 'modal-actions'), apply, button('清除筛选', function () {
       draft.hostId = ''; draft.path = ''; hostSelect.value = ''; updateProjects();
@@ -755,7 +765,7 @@
     TABS.forEach(function (tab) {
       var node = button('', function () {
         if (preferences.tab === tab.id) return;
-        preferences.tab = tab.id; page = 0; persist(); id('tasks').scrollTop = 0; renderBoard();
+        preferences.tab = tab.id; page = 0; persist(); renderBoard(); scrollToTaskStart();
       }, 'tab');
       node.setAttribute('aria-controls', 'tasks');
       node.setAttribute('data-state', tab.id);
@@ -767,8 +777,8 @@
     id('sync').addEventListener('click', function () { post({ type: 'sync' }); });
     id('refresh').addEventListener('click', fullRedraw);
     id('filter').addEventListener('click', showFilters);
-    id('previous').addEventListener('click', function () { if (pageState.previous) { page--; id('tasks').scrollTop = 0; renderBoard(); } });
-    id('next').addEventListener('click', function () { if (pageState.next) { page++; id('tasks').scrollTop = 0; renderBoard(); } });
+    id('previous').addEventListener('click', function () { if (pageState.previous) { page--; renderBoard(); scrollToTaskStart(); } });
+    id('next').addEventListener('click', function () { if (pageState.next) { page++; renderBoard(); scrollToTaskStart(); } });
     id('modal-backdrop').addEventListener('click', function (event) { if (event.target === id('modal-backdrop')) closeModal(); });
     doc.addEventListener('keydown', function (event) {
       if (!modalKind) return;
