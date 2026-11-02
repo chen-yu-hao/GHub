@@ -1,10 +1,13 @@
 package dev.remotegpt.app
 
 import android.graphics.Bitmap
+import android.os.SystemClock
 import org.junit.runners.MethodSorters
 import java.io.FileOutputStream
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.remotegpt.client.*
@@ -79,7 +82,41 @@ class WorkbenchDeviceTest {
             // The save snackbar can cover the last row while this test immediately
             // opens the editor again. Clear it before testing the delete action.
             compose.runOnIdle { vm.message(null) }
-            compose.onNodeWithText(tr(R.string.ui_edit_connection)).performClick()
+            // Compose can be idle while the platform IME is still moving the
+            // native page. Wait for hidden IME insets and stable touch bounds;
+            // an initial hidden frame can precede a queued keyboard animation.
+            var editBounds: Rect? = null
+            var editStableSince = 0L
+            compose.waitUntil(timeoutMillis = 5_000L) {
+                val imeHidden = compose.runOnUiThread {
+                    val decor = compose.activity.window.decorView
+                    val insets = decor.rootWindowInsets?.let {
+                        WindowInsetsCompat.toWindowInsetsCompat(it, decor)
+                    }
+                    insets != null && !insets.isVisible(WindowInsetsCompat.Type.ime())
+                }
+                val bounds = compose.onAllNodesWithText(tr(R.string.ui_edit_connection))
+                    .fetchSemanticsNodes().singleOrNull()?.boundsInWindow
+                val now = SystemClock.uptimeMillis()
+                if (!imeHidden || bounds == null || bounds.isEmpty) {
+                    editBounds = null
+                    editStableSince = 0L
+                    false
+                } else if (bounds != editBounds) {
+                    editBounds = bounds
+                    editStableSince = now
+                    false
+                } else {
+                    now - editStableSince >= 500L
+                }
+            }
+            compose.onNodeWithText(tr(R.string.ui_edit_connection)).assertIsDisplayed().performClick()
+            compose.waitUntil {
+                compose.onAllNodesWithContentDescription(tr(R.string.ui_back_to_server_settings))
+                    .fetchSemanticsNodes().isNotEmpty() &&
+                    compose.onAllNodesWithText(tr(R.string.ui_connection_name))
+                        .fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(tr(R.string.ui_delete_server_connection)))
             compose.onNodeWithText(tr(R.string.ui_delete_server_connection)).performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(tr(R.string.ui_delete)).performClick()
